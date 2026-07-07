@@ -1,38 +1,28 @@
 import VibraHero from "@/components/VibraHero";
+import SectionFeature from "@/components/SectionFeature";
+import ServicesSection from "@/components/ServicesSection";
+import CtaSection from "@/components/CtaSection";
 
 export default function Home() {
   return (
     <main>
       <VibraHero />
 
-      {/* Contenido de ejemplo: se ve la marca de agua hero_2 girando detrás */}
-      <section className="section">
-        <p className="eyebrow">01 — El problema</p>
-        <h2>Hay demasiado ruido.</h2>
-        <p>
-          Existe una avalancha de agencias de IA vendiendo lo mismo. Vibra
-          construye sistemas de IA que de verdad se destacan: claros, seguros y
-          hechos para producción.
-        </p>
-      </section>
+      <SectionFeature
+        eyebrow="01 — El problema"
+        title="Tu tiempo vale más que responder mensajes."
+        description="Sos un profesional que quiere dedicarse a su oficio, no a estar pegado al teléfono. Sabemos que la gestión de turnos y las consultas repetitivas te roban horas clave todos los días. Es hora de delegar."
+      />
 
-      <section className="section">
-        <p className="eyebrow">02 — La señal</p>
-        <h2>IA que se escucha claro.</h2>
-        <p>
-          Diseñamos, entrenamos y desplegamos agentes que resuelven problemas
-          reales de negocio, con la nitidez de una marca premium.
-        </p>
-      </section>
+      <SectionFeature
+        eyebrow="02 — La solución"
+        title="Automatizamos tu agenda."
+        description="Desarrollamos sistemas de Inteligencia Artificial que se integran en tu web, WhatsApp o teléfono para atender a tus clientes y agendar turnos automáticamente. Recuperá tu libertad."
+      />
 
-      <section className="section" style={{ paddingBottom: "12rem" }}>
-        <p className="eyebrow">03 — Empecemos</p>
-        <h2>Construyamos algo que vibre.</h2>
-        <p>
-          Contanos tu idea y la convertimos en un sistema de IA listo para
-          producción.
-        </p>
-      </section>
+      <ServicesSection />
+
+      <CtaSection />
     </main>
   );
 }

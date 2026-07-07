@@ -8,6 +8,10 @@ import {
   useMotionTemplate,
 } from "framer-motion";
 
+import Image from "next/image";
+
+const MotionImage = motion.create(Image);
+
 /**
  * Hero scroll-driven, pinned:
  *  - hero_1 (el estallido) titila suave y llena la pantalla. Un scrim radial
@@ -55,10 +59,14 @@ export default function VibraHero() {
   return (
     <>
       {/* ---- hero_1: estallido ---- */}
-      <motion.img
+      <MotionImage
         aria-hidden
-        src="/hero_1.png"
+        src="/hero_1.jpeg"
         alt=""
+        width={2560}
+        height={1440}
+        quality={100}
+        priority
         className="star-twinkle"
         style={{
           position: "fixed",
@@ -76,10 +84,14 @@ export default function VibraHero() {
       />
 
       {/* ---- hero_2: estrellas girando -> marca de agua ---- */}
-      <motion.img
+      <MotionImage
         aria-hidden
         src="/hero_2.png"
         alt=""
+        width={1200}
+        height={1200}
+        quality={100}
+        priority
         animate={{ rotate: 360 }}
         transition={{ rotate: { duration: 48, ease: "linear", repeat: Infinity } }}
         style={{
