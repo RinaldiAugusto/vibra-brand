@@ -86,10 +86,10 @@ export default function VibraHero() {
       {/* ---- hero_2: estrellas girando -> marca de agua ---- */}
       <MotionImage
         aria-hidden
-        src="/hero_2.png"
+        src="/hero_3.jpeg"
         alt=""
-        width={1200}
-        height={1200}
+        width={1280}
+        height={720}
         quality={100}
         priority
         animate={{ rotate: 360 }}
