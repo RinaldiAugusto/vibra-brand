@@ -24,7 +24,8 @@ body {
   overflow-x: hidden;
 }
 
-/* ---- Star twinkle for the hero_1 burst ---- */
+/* ---- Star twinkle: usado por el punto del wordmark; la titilacion de
+   hero_1 vive en VibraHero.tsx (framer) para convivir con el blur ---- */
 @keyframes starTwinkle {
   0%, 100% {
     filter: brightness(0.96) saturate(1);
@@ -32,10 +33,6 @@ body {
   50% {
     filter: brightness(1.16) saturate(1.08);
   }
-}
-
-.star-twinkle {
-  animation: starTwinkle 3.8s ease-in-out infinite;
 }
 
 /* ---- Tagline pulses in sync with the twinkle ---- */
@@ -53,20 +50,6 @@ body {
 
 .tagline-pulse {
   animation: taglinePulse 3.2s ease-in-out infinite;
-}
-
-/* ---- Slow rotation for the hero_2 star cluster ---- */
-@keyframes slowSpin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.slow-spin {
-  animation: slowSpin 40s linear infinite;
 }
 
 /* ---- Wordmark ---- */
