@@ -8,14 +8,14 @@ export default function ServicesSection() {
     {
       title: "Presencia Digital",
       description: "Diseño de páginas web premium. Tu tarjeta de presentación en internet para que tus clientes te encuentren fácil y rápido.",
-      price: "$40.000",
+      price: "$70.000",
       features: ["Diseño a medida", "Optimización móvil", "Alta velocidad"],
       premium: false,
     },
     {
       title: "Agente WhatsApp",
       description: "Un asistente virtual en tu WhatsApp que atiende consultas y agenda turnos automáticamente 24/7. Olvidate de responder a mano.",
-      price: "$60.000",
+      price: "$70.000",
       features: ["Atención 24/7", "Integración con agenda", "Respuestas inteligentes"],
       premium: false,
     },
@@ -24,6 +24,13 @@ export default function ServicesSection() {
       description: "Nuestra IA avanzada contesta las llamadas de tus clientes de manera fluida y natural para agendar citas sin que tengas que atender el teléfono.",
       price: "$100.000",
       features: ["Voz natural humana", "Agendamiento en tiempo real", "Filtro de llamadas"],
+      premium: false,
+    },
+    {
+      title: "Ecosistema Total",
+      description: "La solución definitiva. Combinamos el Agente de WhatsApp y el Telefónico para cubrir todos tus canales de comunicación de forma automática.",
+      price: "$150.000",
+      features: ["WhatsApp + Teléfono", "Sincronización perfecta", "Delegación absoluta"],
       premium: true,
     },
   ];
