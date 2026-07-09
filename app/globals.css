@@ -572,3 +572,533 @@ h6,
   color: var(--foreground);
   font-size: 0.95rem;
 }
+
+/* ---- Services: filas alternadas (card + mockup) ---- */
+.services-section {
+  max-width: 1200px;
+}
+
+.service-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5rem;
+}
+
+.service-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .service-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+  /* Filas reverse: mockup a la izquierda, card a la derecha.
+     En mobile no aplica (queda card arriba / mockup abajo por orden del DOM). */
+  .service-row-reverse .service-info-card {
+    order: 2;
+  }
+  .service-row-reverse .service-mockup-wrap {
+    order: 1;
+  }
+}
+
+.service-info-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.service-info-card-highlighted {
+  background: linear-gradient(180deg, rgba(41, 211, 238, 0.08) 0%, rgba(16, 17, 23, 0) 100%);
+  border: 1px solid rgba(41, 211, 238, 0.4);
+  box-shadow: 0 0 20px rgba(41, 211, 238, 0.15);
+}
+
+.service-info-card-highlighted:hover {
+  box-shadow: 0 15px 40px rgba(41, 211, 238, 0.25);
+}
+
+/* La descripción no debe estirarse (el CTA se empuja con margin-top:auto). */
+.services-section .service-info-card .service-desc {
+  flex-grow: 0;
+  margin-bottom: 1.5rem;
+}
+
+/* Sub-bloques dentro de la card (ej. Agente de Chat / Telefónico) */
+.service-subblocks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.service-subblock {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+}
+
+.service-subblock-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--foreground);
+}
+
+.services-section .service-subblock-desc {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  max-width: none;
+}
+
+/* ---- Mockups (frames CSS puro) ---- */
+.service-mockup-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mockup {
+  position: relative;
+}
+
+.mockup-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  background: linear-gradient(160deg, rgba(41, 211, 238, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mockup-placeholder {
+  color: var(--muted);
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+/* Frame de celular (vertical) — adaptado de daisyUI .mockup-phone a CSS plano.
+   Estructura: .mockup-phone > .mockup-phone-camera + .mockup-phone-display,
+   ambos hijos comparten la misma celda del grid (camera arriba, superpuesta). */
+.mockup-phone {
+  display: inline-grid;
+  justify-items: center;
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 462 / 978;
+  border: 5px solid #6b6b6b;
+  border-radius: 65px;
+  background-color: #000;
+  padding: 6px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(41, 211, 238, 0.08);
+}
+
+.mockup-phone-camera {
+  grid-column: 1 / 1;
+  grid-row: 1 / 1;
+  z-index: 1;
+  width: 28%;
+  height: 3.7%;
+  margin-top: 3%;
+  background: #000;
+  border-radius: 17px;
+}
+
+.mockup-phone-display {
+  grid-column: 1 / 1;
+  grid-row: 1 / 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 54px;
+  overflow: hidden;
+  /* estado vacío: centra el placeholder; la imagen real llena el frame */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, rgba(41, 211, 238, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.mockup-phone-display > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Frame de computadora (horizontal) */
+.mockup-desktop {
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 16 / 10;
+  background: #0b0c12;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 10px;
+  padding-top: 34px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(41, 211, 238, 0.08);
+}
+
+.mockup-desktop-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.mockup-desktop-bar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.mockup-desktop .mockup-screen {
+  border-radius: 8px;
+}
+
+/* Combo (fila destacada): computadora al frente + celular asomando por detrás */
+.mockup-combo {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.mockup-combo-desktop {
+  position: relative;
+  z-index: 2;
+}
+
+/* Celular parado y alto: asoma por el costado izquierdo con la punta
+   sobresaliendo por arriba del monitor (parte del cuerpo queda detrás). */
+.mockup-combo-phone {
+  position: absolute;
+  z-index: 1;
+  top: -14%;
+  width: 30%;
+  max-width: 145px;
+}
+
+.mockup-combo-phone-left {
+  left: -15%;
+}
+
+/* El radio de daisyUI (65px) es enorme en un frame chico → se ve deformado.
+   Lo escalamos proporcionalmente al tamaño del celular del combo. */
+.mockup-combo-phone .mockup-phone {
+  border-width: 3px;
+  border-radius: 24px;
+  padding: 4px;
+}
+
+.mockup-combo-phone .mockup-phone-display {
+  border-radius: 20px;
+}
+
+/* Caption chico debajo del mockup (ej. fila 3) */
+.services-section .service-mockup-caption {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+  text-align: center;
+  max-width: 22rem;
+  margin: 0 auto;
+}
+
+/* ---- Proceso Section ---- */
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.process-step {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.process-step:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.process-step-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.process-step-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.process-step-desc {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* ---- FAQ Section (acordeón) ---- */
+.faq-list {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.faq-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.faq-item-open {
+  border-color: rgba(41, 211, 238, 0.4);
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--foreground);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 1.5rem 1.75rem;
+}
+
+.faq-icon {
+  color: var(--accent);
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.faq-answer-wrapper {
+  overflow: hidden;
+}
+
+.faq-answer {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  padding: 0 1.75rem 1.5rem 1.75rem;
+}
+
+/* ---- Sobre Nosotros ---- */
+.about-story {
+  max-width: 42rem;
+  margin: 0 auto 4rem auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.about-story p {
+  color: var(--muted);
+  font-size: 1.125rem;
+  line-height: 1.7;
+  margin: 0 auto;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.team-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.team-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(41, 211, 238, 0.2), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(41, 211, 238, 0.25);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.team-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.team-role {
+  color: var(--accent);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Garantía ---- */
+.guarantee-card {
+  max-width: 46rem;
+  margin: 0 auto;
+  text-align: center;
+  background: linear-gradient(145deg, rgba(41, 211, 238, 0.06) 0%, rgba(16, 17, 23, 0) 100%);
+  border: 1px solid rgba(41, 211, 238, 0.2);
+  border-radius: 24px;
+  padding: 3.5rem 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.guarantee-badge {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 1.5rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(41, 211, 238, 0.1);
+  border: 1px solid rgba(41, 211, 238, 0.3);
+}
+
+.guarantee-title {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+
+.guarantee-text {
+  color: var(--muted);
+  font-size: 1.125rem;
+  line-height: 1.7;
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+/* ---- Antes / Después ---- */
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.compare-card {
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+}
+
+.compare-card-before {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.compare-card-after {
+  background: linear-gradient(180deg, rgba(41, 211, 238, 0.08) 0%, rgba(16, 17, 23, 0) 100%);
+  border: 1px solid rgba(41, 211, 238, 0.4);
+  box-shadow: 0 0 20px rgba(41, 211, 238, 0.15);
+}
+
+.compare-heading {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-bottom: 1.75rem;
+}
+
+.compare-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.compare-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: var(--foreground);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.compare-mark {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.compare-mark-before {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
+.compare-mark-after {
+  background: rgba(41, 211, 238, 0.15);
+  color: var(--accent);
+}
