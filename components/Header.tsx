@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import Button from "./Button";
 
 export default function Header() {
@@ -14,7 +15,14 @@ export default function Header() {
     >
       <div className="header-container">
         <Link href="/" className="header-logo">
-          vibra<span className="dot" />
+          <Image
+            src="/vibra-logo-dark.png"
+            alt="Vibra"
+            width={1975}
+            height={954}
+            priority
+            quality={100}
+          />
         </Link>
         <nav>
           <Link href="#contacto-final">

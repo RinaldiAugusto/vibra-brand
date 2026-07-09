@@ -39,7 +39,7 @@ export default function ServicesSection() {
     <section className="section" id="servicios">
       <div style={{ textAlign: "center", marginBottom: "4rem" }}>
         <p className="eyebrow">Nuestros Servicios</p>
-        <h2>Soluciones que liberan tu tiempo.</h2>
+        <h2 className="font-heading">Soluciones que liberan tu tiempo.</h2>
         <p style={{ margin: "0 auto" }}>Elegí el nivel de automatización que tu negocio necesita.</p>
       </div>
 
@@ -54,11 +54,11 @@ export default function ServicesSection() {
             className={`service-card ${service.premium ? "service-card-premium" : ""}`}
           >
             {service.premium && <div className="premium-badge">MÁS POPULAR</div>}
-            <h3 className="service-title">{service.title}</h3>
+            <h3 className="service-title font-heading">{service.title}</h3>
             <p className="service-desc">{service.description}</p>
             <div className="service-price">
               <span className="price-label">Desde</span>
-              <span className="price-value">{service.price}</span>
+              <span className="price-value font-heading">{service.price}</span>
             </div>
             <ul className="service-features">
               {service.features.map((feat) => (

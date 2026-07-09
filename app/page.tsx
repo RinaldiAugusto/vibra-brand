@@ -1,28 +1,20 @@
 import VibraHero from "@/components/VibraHero";
-import SectionFeature from "@/components/SectionFeature";
-import ServicesSection from "@/components/ServicesSection";
-import CtaSection from "@/components/CtaSection";
+import LampSection from "@/components/LampSection";
 
 export default function Home() {
   return (
     <main>
       <VibraHero />
 
-      <SectionFeature
-        eyebrow="01 — El problema"
-        title="Tu tiempo vale más que responder mensajes."
-        description="Sos un profesional que quiere dedicarse a su oficio, no a estar pegado al teléfono. Sabemos que la gestión de turnos y las consultas repetitivas te roban horas clave todos los días. Es hora de delegar."
+      {/* espacio vacio: la animacion del hero termina antes de la lamp */}
+      <div className="hero-lamp-gap" aria-hidden />
+
+      <LampSection
+        title="Tu tiempo es lo más valioso"
+        description="Tu negocio no necesita más horas. Necesita más sistema. Creamos la web, los agentes y las automatizaciones que hacen crecer tu operación sin que vos estés atrás de cada tarea."
       />
 
-      <SectionFeature
-        eyebrow="02 — La solución"
-        title="Automatizamos tu agenda."
-        description="Desarrollamos sistemas de Inteligencia Artificial que se integran en tu web, WhatsApp o teléfono para atender a tus clientes y agendar turnos automáticamente. Recuperá tu libertad."
-      />
-
-      <ServicesSection />
-
-      <CtaSection />
+      {/* A partir de acá desarrollamos las próximas secciones */}
     </main>
   );
 }

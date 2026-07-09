@@ -27,7 +27,7 @@ export default function SectionFeature({
       style={{ paddingBottom }}
     >
       <p className="eyebrow">{eyebrow}</p>
-      <h2>{title}</h2>
+      <h2 className="font-heading">{title}</h2>
       <p>{description}</p>
       {children && <div style={{ marginTop: "2rem" }}>{children}</div>}
     </motion.section>

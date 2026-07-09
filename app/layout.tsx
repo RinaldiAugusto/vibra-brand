@@ -1,7 +1,26 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans, Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+// Sistema tipografico:
+//   Titulos (h1-h4) -> Plus Jakarta Sans  (sustituto de Google Sans)
+//   Body / texto general -> Manrope
+// Nota: "Google Sans" / "Google Sans Flex" no estan en next/font/google en
+// esta version de Next; Google Sans es propietaria y no esta en Google Fonts.
+// Plus Jakarta Sans es el reemplazo elegido para los headings.
+const fontHeading = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const fontBody = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Vibra — Agencia de IA",
@@ -37,19 +56,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html
+      lang="es"
+      className={`${fontHeading.variable} ${fontBody.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <Header />
         {children}

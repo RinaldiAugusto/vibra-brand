@@ -18,10 +18,28 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Geist", system-ui, -apple-system, sans-serif;
+  /* Body / texto general -> Manrope (via next/font) */
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+/* ---- Sistema tipografico ----
+   Titulos -> Plus Jakarta Sans (--font-heading)
+   Body    -> Manrope (--font-body, default en body) */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-heading {
+  font-family: var(--font-heading), system-ui, -apple-system, sans-serif;
+}
+
+.font-body {
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
 }
 
 /* ---- Star twinkle: usado por el punto del wordmark; la titilacion de
@@ -53,45 +71,19 @@ body {
 }
 
 /* ---- Wordmark ---- */
-.title-scrim {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(90vw, 880px);
-  height: min(72vh, 560px);
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 52% 42% at 50% 50%,
-    rgba(16, 17, 23, 0.9) 0%,
-    rgba(16, 17, 23, 0.62) 42%,
-    rgba(16, 17, 23, 0) 72%
-  );
-}
-
 .wordmark {
   position: relative;
   z-index: 1;
-  font-weight: 600;
-  letter-spacing: -0.05em;
-  line-height: 1;
-  font-size: clamp(4rem, 16vw, 11rem);
   display: inline-flex;
-  align-items: baseline;
-  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.55), 0 0 2px rgba(0, 0, 0, 0.4);
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 }
 
-.wordmark .dot {
-  display: inline-block;
-  width: 0.16em;
-  height: 0.16em;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-left: 0.01em;
-  box-shadow: 0 0 18px 3px rgba(41, 211, 238, 0.75),
-    0 0 40px 8px rgba(41, 211, 238, 0.35);
-  animation: starTwinkle 3.2s ease-in-out infinite;
+.wordmark-img {
+  width: clamp(14rem, 40vw, 30rem);
+  height: auto;
+  filter: drop-shadow(0 2px 40px rgba(0, 0, 0, 0.55));
 }
 
 .tagline {
@@ -117,7 +109,7 @@ body {
   bottom: 2.2rem;
   left: 50%;
   transform: translateX(-50%);
-  font-family: "Geist Mono", ui-monospace, monospace;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   font-size: 0.72rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -157,12 +149,206 @@ body {
 }
 
 .eyebrow {
-  font-family: "Geist Mono", ui-monospace, monospace;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   font-size: 0.72rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 1rem;
+}
+
+/* ---- Separador: espacio vacio (transparente) para que la animacion del hero
+   se termine de ver antes de la lamp. No lleva fondo para no tapar el video
+   fijo del hero, que se desvanece solo por su propia opacidad. ---- */
+.hero-lamp-gap {
+  width: 100%;
+  height: 45vh;
+}
+
+/* ---- Lamp effect (adaptado de Aceternity UI a CSS plano) ---- */
+.lamp-section {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  width: 100%;
+  min-height: 44rem;
+  padding-top: 6rem;
+}
+
+.lamp-stage {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 24rem;
+  transform: scaleY(1.25);
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  z-index: 0;
+}
+
+.lamp-beam {
+  position: absolute;
+  inset: auto;
+  height: 14rem;
+  width: 44rem;
+  color: #fff;
+}
+
+.lamp-beam-left {
+  right: 50%;
+  overflow: visible;
+  background-image: conic-gradient(
+    from 70deg at center top,
+    var(--accent) 0%,
+    transparent 50%,
+    transparent 100%
+  );
+}
+
+.lamp-beam-right {
+  left: 50%;
+  background-image: conic-gradient(
+    from 290deg at center top,
+    transparent 0%,
+    transparent 50%,
+    var(--accent) 100%
+  );
+}
+
+.lamp-mask-bottom {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  bottom: 0;
+  height: 10rem;
+  z-index: 20;
+  background: var(--background);
+  -webkit-mask-image: linear-gradient(to top, white, transparent);
+  mask-image: linear-gradient(to top, white, transparent);
+}
+
+.lamp-mask-side {
+  position: absolute;
+  width: 10rem;
+  height: 100%;
+  bottom: 0;
+  z-index: 20;
+  background: var(--background);
+}
+
+.lamp-mask-side-left {
+  left: 0;
+  -webkit-mask-image: linear-gradient(to right, white, transparent);
+  mask-image: linear-gradient(to right, white, transparent);
+}
+
+.lamp-mask-side-right {
+  right: 0;
+  -webkit-mask-image: linear-gradient(to left, white, transparent);
+  mask-image: linear-gradient(to left, white, transparent);
+}
+
+.lamp-blur-block {
+  position: absolute;
+  top: 50%;
+  height: 12rem;
+  width: 100%;
+  transform: translateY(3rem) scaleX(1.5);
+  background: var(--background);
+  filter: blur(40px);
+}
+
+.lamp-backdrop {
+  position: absolute;
+  top: 50%;
+  z-index: 50;
+  height: 12rem;
+  width: 100%;
+  background: transparent;
+  opacity: 0.1;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.lamp-glow-big {
+  position: absolute;
+  inset: auto;
+  z-index: 50;
+  height: 9rem;
+  width: 40rem;
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  background: var(--accent);
+  opacity: 0.5;
+  filter: blur(64px);
+}
+
+.lamp-glow-inner {
+  position: absolute;
+  inset: auto;
+  z-index: 30;
+  height: 9rem;
+  width: 22rem;
+  transform: translateY(-6rem);
+  border-radius: 9999px;
+  background: var(--accent);
+  filter: blur(40px);
+}
+
+.lamp-line {
+  position: absolute;
+  inset: auto;
+  z-index: 50;
+  height: 2px;
+  width: 44rem;
+  transform: translateY(-7rem);
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(41, 211, 238, 0.7);
+}
+
+.lamp-top-mask {
+  position: absolute;
+  inset: auto;
+  z-index: 40;
+  height: 11rem;
+  width: 100%;
+  transform: translateY(-12.5rem);
+  background: var(--background);
+}
+
+.lamp-content {
+  position: relative;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-16rem);
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.lamp-title {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  margin-bottom: 1.25rem;
+  background: linear-gradient(to bottom right, #ffffff, var(--muted));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  max-width: 20ch;
+}
+
+.lamp-description {
+  color: var(--muted);
+  font-size: 1.125rem;
+  line-height: 1.7;
+  max-width: 42rem;
 }
 
 /* ---- Button ---- */
@@ -206,23 +392,15 @@ body {
 }
 
 .header-logo {
-  font-weight: 700;
-  font-size: 1.5rem;
   text-decoration: none;
-  color: var(--foreground);
   display: flex;
-  align-items: baseline;
-  letter-spacing: -0.05em;
+  align-items: center;
 }
 
-.header-logo .dot {
-  display: inline-block;
-  width: 0.2em;
-  height: 0.2em;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-left: 0.05em;
-  box-shadow: 0 0 10px rgba(41, 211, 238, 0.8);
+.header-logo img {
+  height: 38px;
+  width: auto;
+  display: block;
 }
 
 /* ---- Footer ---- */
@@ -244,20 +422,14 @@ body {
 }
 
 .footer-logo {
-  font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: -0.05em;
   display: flex;
-  align-items: baseline;
+  align-items: center;
 }
 
-.footer-logo .dot {
-  display: inline-block;
-  width: 0.2em;
-  height: 0.2em;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-left: 0.05em;
+.footer-logo img {
+  height: 30px;
+  width: auto;
+  display: block;
 }
 
 .footer-copy {

@@ -20,7 +20,7 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const ramp = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
 
 // vuelo de hero_3 hacia el boton del header
-const CLUSTER_SIZE = 64; // px — tamano final del logo
+const CLUSTER_SIZE = 48; // px — tamano final del logo
 // posicion: sale rapido y sobrepasa apenas el destino antes de acoplarse
 const flyEase = cubicBezier(0.3, 1.18, 0.32, 1);
 // escala: encoge rapido al principio y asienta suave
@@ -71,7 +71,7 @@ export default function VibraHero() {
     const s1 = Math.sin((t / 2600) * Math.PI * 2);
     const s2 = Math.sin((t / 1100) * Math.PI * 2 + 1.3);
     const s3 = Math.sin((t / 430) * Math.PI * 2 + 2.1);
-    return 1.16 + 0.12 * s1 + 0.06 * s2 + 0.04 * s3;
+    return 0.5 + 0.06 * s1 + 0.03 * s2 + 0.02 * s3;
   });
   const burstFilter = useMotionTemplate`brightness(${twinkle})`;
 
@@ -171,7 +171,7 @@ export default function VibraHero() {
     const h = window.innerHeight;
     // escala inicial: cubre 110vmin, igual que el frame final del video B
     const startScale = (1.1 * Math.min(w, h)) / CLUSTER_SIZE;
-    const targetLeft = Math.min(w / 2 + 610, w - 40);
+    const targetLeft = Math.min(w / 2 + 592, w - 32);
     clusterScale.set(startScale + (1 - startScale) * shrinkEase(f));
     clusterDX.set((w / 2 - targetLeft) * (1 - flyEase(f)));
     clusterDY.set((h / 2 - 47) * (1 - flyEase(f)));
@@ -234,7 +234,7 @@ export default function VibraHero() {
           ...fullscreenMedia,
           scale: bloomScale,
           opacity: bloomOpacity,
-          filter: "blur(28px) saturate(1.4) brightness(1.15)",
+          filter: "blur(28px) saturate(1.4) brightness(0.6)",
         }}
       />
 
@@ -252,7 +252,7 @@ export default function VibraHero() {
           ...fullscreenMedia,
           scale: haloScale,
           opacity: haloOpacity,
-          filter: "blur(80px) saturate(1.6) brightness(1.3)",
+          filter: "blur(80px) saturate(1.6) brightness(0.68)",
         }}
       />
 
@@ -297,11 +297,11 @@ export default function VibraHero() {
           top: "47px",
           // centro del logo pegado a la derecha del boton: borde derecho del
           // boton (50vw + 600px - 2rem de padding del contenedor) + gap de
-          // 10px + medio logo (32px) = 50vw + 610px. En pantallas angostas se
-          // topa a 100vw - 40px para que nunca se salga del viewport.
-          left: "calc(min(50vw + 610px, 100vw - 40px))",
-          width: "64px",
-          height: "64px",
+          // 0px + medio logo (24px) = 50vw + 592px. En pantallas angostas se
+          // topa a 100vw - 32px para que nunca se salga del viewport.
+          left: "calc(min(50vw + 592px, 100vw - 32px))",
+          width: "48px",
+          height: "48px",
           objectFit: "cover",
           zIndex: 60,
           pointerEvents: "none",
@@ -338,9 +338,16 @@ export default function VibraHero() {
               textAlign: "center",
             }}
           >
-            <div className="title-scrim" aria-hidden />
             <h1 className="wordmark">
-              vibra<span className="dot" />
+              <Image
+                className="wordmark-img"
+                src="/vibra-logo-dark.png"
+                alt="Vibra"
+                width={1975}
+                height={954}
+                priority
+                quality={100}
+              />
             </h1>
             <p className="tagline tagline-pulse">Agencia de IA</p>
           </motion.div>

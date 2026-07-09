@@ -14,7 +14,7 @@ export default function CtaSection() {
       id="contacto-final"
     >
       <div className="cta-content">
-        <h2 className="cta-title">¿Listo para escalar con IA?</h2>
+        <h2 className="cta-title font-heading">¿Listo para escalar con IA?</h2>
         <p className="cta-description">
           Agenda una llamada con nuestro equipo técnico y descubrí cómo podemos transformar tu negocio con agentes de IA a medida.
         </p>
