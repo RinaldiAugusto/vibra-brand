@@ -9,6 +9,7 @@ import {
   useMotionValue,
   useAnimationFrame,
   useTime,
+  useReducedMotion,
   cubicBezier,
 } from "framer-motion";
 
@@ -59,6 +60,11 @@ export default function VibraHero() {
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
 
+  // Respeta prefers-reduced-motion: congela los bucles autoplay (titileo,
+  // bloom/halo pulsante, giro continuo del logo). El morph sigue atado al
+  // scroll (lo controla el usuario), pero sin animaciones que se muevan solas.
+  const reduce = useReducedMotion();
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -68,6 +74,7 @@ export default function VibraHero() {
   // frecuencias distintas para que nunca se sienta mecanico
   const time = useTime();
   const twinkle = useTransform(time, (t) => {
+    if (reduce) return 1; // brillo estable, sin titileo
     const s1 = Math.sin((t / 2600) * Math.PI * 2);
     const s2 = Math.sin((t / 1100) * Math.PI * 2 + 1.3);
     const s3 = Math.sin((t / 430) * Math.PI * 2 + 2.1);
@@ -85,6 +92,7 @@ export default function VibraHero() {
   // Ademas de la opacidad, la escala pulsa: el halo se expande fisicamente
   // cuando brilla, como si la luz empujara el espacio.
   const bloomPulse = useTransform(time, (t) => {
+    if (reduce) return 0.7; // halo estable, sin respiracion
     const s1 = Math.sin((t / 2600) * Math.PI * 2);
     const s2 = Math.sin((t / 900) * Math.PI * 2 + 0.7);
     return 0.55 + 0.35 * s1 + 0.2 * s2;
@@ -101,6 +109,7 @@ export default function VibraHero() {
   // halo exterior: capa muy difuminada y lenta, desfasada del bloom, que
   // envuelve toda la escena en un resplandor espacial que va y viene
   const haloPulse = useTransform(time, (t) => {
+    if (reduce) return 0.6; // resplandor exterior estable
     const s1 = Math.sin((t / 3400) * Math.PI * 2 + 2.4);
     const s2 = Math.sin((t / 1500) * Math.PI * 2);
     return 0.45 + 0.3 * s1 + 0.18 * s2;
@@ -147,39 +156,55 @@ export default function VibraHero() {
   useAnimationFrame((_, delta) => {
     const p = scrollYProgress.get();
 
-    const scrub = (
-      video: HTMLVideoElement | null,
-      from: number,
-      to: number
-    ) => {
-      if (!video || !video.duration) return;
-      const target = ramp(p, from, to) * (video.duration - 0.05);
-      if (Math.abs(video.currentTime - target) > 0.02) {
-        // persigue el target para absorber saltos bruscos del scroll
-        video.currentTime += (target - video.currentTime) * 0.45;
-      }
-    };
-    // el scrub de A termina antes del crossfade (0.38-0.42) para que ambos
-    // videos muestren el frame de hero_2 durante la transicion
-    scrub(videoARef.current, 0.12, 0.36);
-    scrub(videoBRef.current, 0.44, 0.63);
+    // Scrub de video: solo durante los morphs (p < 0.66). Pasado ese punto
+    // ambos videos tienen opacity 0, asi que seguir buscando frames era
+    // trabajo puro desperdiciado en cada frame.
+    if (p < 0.66) {
+      const scrub = (
+        video: HTMLVideoElement | null,
+        from: number,
+        to: number
+      ) => {
+        if (!video || !video.duration) return;
+        const target = ramp(p, from, to) * (video.duration - 0.05);
+        if (Math.abs(video.currentTime - target) > 0.02) {
+          // persigue el target para absorber saltos bruscos del scroll
+          video.currentTime += (target - video.currentTime) * 0.45;
+        }
+      };
+      // el scrub de A termina antes del crossfade (0.38-0.42) para que ambos
+      // videos muestren el frame de hero_2 durante la transicion
+      scrub(videoARef.current, 0.12, 0.36);
+      scrub(videoBRef.current, 0.44, 0.63);
+    }
 
-    // vuelo de hero_3: de pantalla completa al lado del boton.
-    // El destino replica el left/top fijos del style (mantener en sync).
     const f = ramp(p, 0.66, 0.8);
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    // escala inicial: cubre 110vmin, igual que el frame final del video B
-    const startScale = (1.1 * Math.min(w, h)) / CLUSTER_SIZE;
-    const targetLeft = Math.min(w / 2 + 592, w - 32);
-    clusterScale.set(startScale + (1 - startScale) * shrinkEase(f));
-    clusterDX.set((w / 2 - targetLeft) * (1 - flyEase(f)));
-    clusterDY.set((h / 2 - 47) * (1 - flyEase(f)));
 
-    // giro base (4 s/vuelta) + whoosh: acelera en pleno vuelo y se asienta
-    const degPerSec =
-      90 * ramp(p, 0.62, 0.66) + 300 * Math.sin(Math.PI * f);
-    clusterRotate.set((clusterRotate.get() + (degPerSec * delta) / 1000) % 360);
+    // Vuelo de hero_3: de pantalla completa al lado del boton. Se recalcula
+    // desde p>=0.6 (antes el cluster es invisible). Sin limite superior: para
+    // p>=0.8 el ease clampea a 1 y devuelve siempre la posicion final
+    // dockeada, asi un flick rapido que saltee la ventana no deja el logo
+    // clavado a mitad de vuelo. El costo es trivial (unas ops + sets).
+    if (p >= 0.6) {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // escala inicial: cubre 110vmin, igual que el frame final del video B
+      const startScale = (1.1 * Math.min(w, h)) / CLUSTER_SIZE;
+      const targetLeft = Math.min(w / 2 + 592, w - 32);
+      clusterScale.set(startScale + (1 - startScale) * shrinkEase(f));
+      clusterDX.set((w / 2 - targetLeft) * (1 - flyEase(f)));
+      clusterDY.set((h / 2 - 47) * (1 - flyEase(f)));
+    }
+
+    // Giro continuo del logo dockeado (4 s/vuelta) + whoosh en pleno vuelo.
+    // Es una animacion autoplay: se omite entera bajo prefers-reduced-motion.
+    if (!reduce) {
+      const degPerSec =
+        90 * ramp(p, 0.62, 0.66) + 300 * Math.sin(Math.PI * f);
+      clusterRotate.set(
+        (clusterRotate.get() + (degPerSec * delta) / 1000) % 360
+      );
+    }
   });
 
   // titulo
@@ -227,9 +252,9 @@ export default function VibraHero() {
         alt=""
         width={4096}
         height={2305}
-        quality={75}
-        sizes="100vw"
-        priority
+        quality={45}
+        sizes="55vw"
+        loading="eager"
         style={{
           ...fullscreenMedia,
           scale: bloomScale,
@@ -245,9 +270,9 @@ export default function VibraHero() {
         alt=""
         width={4096}
         height={2305}
-        quality={75}
-        sizes="100vw"
-        priority
+        quality={35}
+        sizes="40vw"
+        loading="eager"
         style={{
           ...fullscreenMedia,
           scale: haloScale,
@@ -287,9 +312,8 @@ export default function VibraHero() {
         alt=""
         width={4096}
         height={2293}
-        quality={100}
+        quality={90}
         sizes="110vmin"
-        priority
         style={{
           position: "fixed",
           // centro vertical del boton: padding-top del header (24px) + medio

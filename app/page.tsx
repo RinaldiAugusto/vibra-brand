@@ -10,7 +10,7 @@ import CtaSection from "@/components/CtaSection";
 
 export default function Home() {
   return (
-    <main>
+    <main id="contenido">
       <VibraHero />
 
       {/* espacio vacio: la animacion del hero termina antes de la lamp */}

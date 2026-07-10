@@ -51,8 +51,10 @@ export default function FaqSection() {
             >
               <button
                 type="button"
+                id={`faq-trigger-${index}`}
                 className="faq-question font-heading"
                 aria-expanded={isOpen}
+                aria-controls={`faq-panel-${index}`}
                 onClick={() => toggle(index)}
               >
                 <span>{faq.question}</span>
@@ -70,6 +72,9 @@ export default function FaqSection() {
                 {isOpen && (
                   <motion.div
                     className="faq-answer-wrapper"
+                    id={`faq-panel-${index}`}
+                    role="region"
+                    aria-labelledby={`faq-trigger-${index}`}
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}

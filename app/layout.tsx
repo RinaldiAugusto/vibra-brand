@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import MotionProvider from "@/components/MotionProvider";
 
 // Sistema tipografico:
 //   Titulos (h1-h4) -> Plus Jakarta Sans  (sustituto de Google Sans)
@@ -23,6 +24,7 @@ const fontBody = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://vibra.agency"),
   title: "Vibra — Agencia de IA",
   description:
     "Vibra construye sistemas de IA que de verdad se destacan: claros, seguros y hechos para producción.",
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
     siteName: "Vibra",
     images: [
       {
-        url: "/hero_1.jpeg",
+        url: "/hero_1.png",
         width: 1200,
         height: 630,
         alt: "Vibra Agency - IA para producción",
@@ -46,7 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Vibra — Agencia de IA",
     description: "Vibra construye sistemas de IA que de verdad se destacan: claros, seguros y hechos para producción.",
-    images: ["/hero_1.jpeg"],
+    images: ["/hero_1.png"],
   },
 };
 
@@ -62,9 +64,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <Header />
-        {children}
-        <Footer />
+        <a href="#contenido" className="skip-link">
+          Saltar al contenido
+        </a>
+        <MotionProvider>
+          <Header />
+          {children}
+          <Footer />
+        </MotionProvider>
       </body>
     </html>
   );
