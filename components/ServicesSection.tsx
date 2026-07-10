@@ -19,6 +19,8 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Preparada para captar clientes",
     ],
     mockup: "phone",
+    // Demo viva en el frame de celular.
+    phoneVideoSrc: "/videos/presencia-digital-demo.mp4",
   },
   {
     // FILA 2 — mockup izquierda / card derecha
@@ -42,7 +44,8 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Agenda turnos automáticamente",
       "Uno, otro, o los dos combinados",
     ],
-    mockup: "phone",
+    // Dos celulares animados en fan: llamada adelante, chat de WhatsApp detrás.
+    mockup: "agents",
   },
   {
     // FILA 3 — card izquierda / mockup derecha (compu / n8n)
@@ -54,7 +57,8 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Tus herramientas, conectadas entre sí",
       "Reportes y seguimientos automáticos",
     ],
-    mockup: "desktop",
+    // Mockup de compu con animacion de 2 escenas (flujo + dashboard) en loop.
+    mockup: "ops",
     caption: "Así se ve el sistema que trabaja por vos",
   },
   {

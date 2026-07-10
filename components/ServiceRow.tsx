@@ -2,13 +2,15 @@
 
 import { motion } from "framer-motion";
 import Button from "./Button";
+import AgentsFanMockup from "./AgentsFanMockup";
+import AutomationDesktopMockup from "./AutomationDesktopMockup";
 
 export interface ServiceSubBlock {
   title: string;
   description: string;
 }
 
-export type MockupType = "phone" | "desktop" | "combo";
+export type MockupType = "phone" | "desktop" | "combo" | "agents" | "ops";
 
 export interface ServiceRowProps {
   title: string;
@@ -25,19 +27,35 @@ export interface ServiceRowProps {
   subBlocks?: ServiceSubBlock[];
   /** Caption chico debajo del mockup (ej. fila 3). */
   caption?: string;
+  /** Video demo para el frame de celular (solo mockup "phone" standalone). */
+  phoneVideoSrc?: string;
   /** Destino del CTA. */
   ctaHref: string;
 }
 
 // ---- Frames de mockup en CSS puro ----
 // El área .mockup-phone-display / .mockup-screen es donde va la captura real.
-function PhoneFrame() {
+function PhoneFrame({ videoSrc }: { videoSrc?: string }) {
   return (
     <div className="mockup-phone">
       <div className="mockup-phone-camera" aria-hidden />
       <div className="mockup-phone-display">
-        {/* Pegá acá la captura vertical (celular): <img> o <Image> */}
-        <span className="mockup-placeholder">[imagen aquí]</span>
+        {videoSrc ? (
+          // Demo viva: se reproduce sola, en loop, sin sonido ni controles.
+          // El recorte a los bordes redondeados y el object-position (ajuste
+          // por la dynamic island) se manejan en globals.css.
+          <video
+            src={videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden
+          />
+        ) : (
+          /* Pegá acá la captura vertical (celular): <img> o <Image> */
+          <span className="mockup-placeholder">[imagen aquí]</span>
+        )}
       </div>
     </div>
   );
@@ -59,10 +77,21 @@ function DesktopFrame() {
   );
 }
 
-function Mockup({ type, caption }: { type: MockupType; caption?: string }) {
+function Mockup({
+  type,
+  caption,
+  phoneVideoSrc,
+}: {
+  type: MockupType;
+  caption?: string;
+  phoneVideoSrc?: string;
+}) {
   return (
     <div className="service-mockup-wrap">
-      {type === "phone" && <PhoneFrame />}
+      {/* El video solo va en el celular standalone; el combo (fila 4) queda intacto. */}
+      {type === "phone" && <PhoneFrame videoSrc={phoneVideoSrc} />}
+      {type === "agents" && <AgentsFanMockup />}
+      {type === "ops" && <AutomationDesktopMockup />}
       {type === "desktop" && <DesktopFrame />}
       {type === "combo" && (
         // Computadora al frente + un celular asomando por detrás del lado izquierdo.
@@ -91,6 +120,7 @@ export default function ServiceRow({
   badge,
   subBlocks,
   caption,
+  phoneVideoSrc,
   ctaHref,
 }: ServiceRowProps) {
   return (
@@ -155,7 +185,7 @@ export default function ServiceRow({
       </div>
 
       {/* --- Lado mockup --- */}
-      <Mockup type={mockup} caption={caption} />
+      <Mockup type={mockup} caption={caption} phoneVideoSrc={phoneVideoSrc} />
     </motion.div>
   );
 }
