@@ -26,7 +26,12 @@ export default function Header() {
         </Link>
         <nav>
           <Link href="#contacto-final">
-            <Button>Agenda una Llamada</Button>
+            <Button
+              data-cal-link="augusto-rinaldi-r0s8ra/30min"
+              data-cal-config='{"layout":"month_view"}'
+            >
+              Agenda una Llamada
+            </Button>
           </Link>
         </nav>
       </div>

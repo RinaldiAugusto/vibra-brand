@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MotionProvider from "@/components/MotionProvider";
+import CalProvider from "@/components/cal-provider";
 
 // Sistema tipografico:
 //   Titulos (h1-h4) -> Plus Jakarta Sans  (sustituto de Google Sans)
@@ -64,6 +65,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
+        <CalProvider />
         <a href="#contenido" className="skip-link">
           Saltar al contenido
         </a>

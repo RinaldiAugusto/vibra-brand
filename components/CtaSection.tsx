@@ -27,11 +27,18 @@ export default function CtaSection() {
         <motion.p variants={fadeItem} className="cta-description">
           Agenda una llamada con nuestro equipo técnico y descubrí cómo podemos transformar tu negocio con agentes de IA a medida.
         </motion.p>
-        <motion.a variants={fadeItem} href="mailto:contacto@vibra.agency">
-          <Button style={{ padding: "1rem 2rem", fontSize: "1.125rem" }}>
+        <motion.div variants={fadeItem} className="cta-actions">
+          <Button
+            data-cal-link="augusto-rinaldi-r0s8ra/30min"
+            data-cal-config='{"layout":"month_view"}'
+            style={{ padding: "1rem 2rem", fontSize: "1.125rem" }}
+          >
             Hablar con un experto
           </Button>
-        </motion.a>
+          <a href="mailto:contacto@vibra.agency" className="cta-mail-secondary">
+            ¿Preferís escribirnos? Mandanos un mail
+          </a>
+        </motion.div>
       </motion.div>
     </motion.section>
   );

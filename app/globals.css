@@ -604,6 +604,26 @@ h6,
   margin: 0 auto 2.5rem auto;
 }
 
+.cta-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cta-mail-secondary {
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.cta-mail-secondary:hover {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
 /* ---- Services Section ---- */
 .services-grid {
   display: grid;
