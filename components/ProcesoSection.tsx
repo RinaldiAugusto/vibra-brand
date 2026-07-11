@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
 
 // ---- ESQUELETO ----
 // Sección "Cómo trabajamos": pasos del servicio en orden.
@@ -28,22 +29,31 @@ const steps = [
 export default function ProcesoSection() {
   return (
     <section className="section" id="proceso">
-      <div style={{ textAlign: "center", marginBottom: "4rem" }}>
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+        style={{ textAlign: "center", marginBottom: "4rem" }}
+      >
         <p className="eyebrow">[EYEBROW — ej. Nuestro Proceso]</p>
         <h2 className="font-heading">[TÍTULO DE LA SECCIÓN — Cómo trabajamos]</h2>
         <p style={{ margin: "0 auto" }}>
           [Subtítulo placeholder — completar después]
         </p>
-      </div>
+      </motion.div>
 
-      <div className="process-grid">
+      <motion.div
+        className="process-grid"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+      >
         {steps.map((step, index) => (
           <motion.div
             key={step.title}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.6, delay: index * 0.15 }}
+            variants={fadeItem}
             className="process-step"
           >
             <span className="process-step-number font-heading">
@@ -53,7 +63,7 @@ export default function ProcesoSection() {
             <p className="process-step-desc">{step.description}</p>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
     </section>
   );
 }

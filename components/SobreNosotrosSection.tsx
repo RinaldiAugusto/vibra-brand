@@ -1,6 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import {
+  fadeItem,
+  staggerContainer,
+  viewportOnce,
+  HOVER_SPRING,
+} from "./motion";
 
 // ---- ESQUELETO ----
 // "Sobre Nosotros": historia breve de la agencia + equipo.
@@ -34,17 +40,29 @@ export default function SobreNosotrosSection() {
       </div>
 
       {/* Equipo */}
-      <div className="team-grid">
+      <motion.div
+        className="team-grid"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+      >
         {team.map((member) => (
-          <div key={member.name} className="team-card">
+          <motion.div
+            key={member.name}
+            variants={fadeItem}
+            whileHover={{ y: -6 }}
+            transition={HOVER_SPRING}
+            className="team-card"
+          >
             <div className="team-avatar" aria-hidden>
               {/* Reemplazar por <Image> cuando haya foto */}
             </div>
             <h3 className="team-name font-heading">{member.name}</h3>
             <p className="team-role">{member.role}</p>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </motion.section>
   );
 }

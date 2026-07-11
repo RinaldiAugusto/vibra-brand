@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
 
 // ---- ESQUELETO ----
 // FAQ en formato acordeón funcional (abrir/cerrar con estado).
@@ -33,20 +34,33 @@ export default function FaqSection() {
 
   return (
     <section className="section" id="faq">
-      <div style={{ textAlign: "center", marginBottom: "4rem" }}>
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+        style={{ textAlign: "center", marginBottom: "4rem" }}
+      >
         <p className="eyebrow">[EYEBROW — ej. Preguntas Frecuentes]</p>
         <h2 className="font-heading">[TÍTULO DE LA SECCIÓN — FAQ]</h2>
         <p style={{ margin: "0 auto" }}>
           [Subtítulo placeholder — completar después]
         </p>
-      </div>
+      </motion.div>
 
-      <div className="faq-list">
+      <motion.div
+        className="faq-list"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+      >
         {faqs.map((faq, index) => {
           const isOpen = openIndex === index;
           return (
-            <div
+            <motion.div
               key={faq.question}
+              variants={fadeItem}
               className={`faq-item ${isOpen ? "faq-item-open" : ""}`}
             >
               <button
@@ -84,10 +98,10 @@ export default function FaqSection() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </section>
   );
 }

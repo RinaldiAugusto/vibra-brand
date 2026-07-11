@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { HOVER_SPRING, POP_SPRING } from "./motion";
 
 // ---- ESQUELETO ----
 // "Garantía": reducción de riesgo. Texto + badge/ícono.
@@ -13,9 +14,17 @@ export default function GarantiaSection() {
         whileInView={{ opacity: 1, scale: 1 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.7, ease: "easeOut" }}
+        whileHover={{ y: -6, transition: HOVER_SPRING }}
         className="guarantee-card"
       >
-        <div className="guarantee-badge" aria-hidden>
+        <motion.div
+          className="guarantee-badge"
+          aria-hidden
+          initial={{ scale: 0, rotate: -20 }}
+          whileInView={{ scale: 1, rotate: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ ...POP_SPRING, delay: 0.25 }}
+        >
           {/* Ícono/badge placeholder — reemplazar por SVG o <Image> */}
           <svg
             width="40"
@@ -30,7 +39,7 @@ export default function GarantiaSection() {
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             <polyline points="9 12 11 14 15 10" />
           </svg>
-        </div>
+        </motion.div>
 
         <p className="eyebrow">[EYEBROW — ej. Sin riesgo]</p>
         <h2 className="font-heading guarantee-title">

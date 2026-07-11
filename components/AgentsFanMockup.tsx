@@ -17,7 +17,7 @@ import { motion, useReducedMotion } from "framer-motion";
  */
 
 // Frame de celular reutilizando el device del sitio (.mockup-phone).
-function PhoneShell({ children }: { children: React.ReactNode }) {
+export function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mockup-phone">
       <div className="mockup-phone-camera" aria-hidden />
@@ -43,7 +43,7 @@ const CHAT_SCRIPT: ChatMsg[] = [
   { who: "bot", text: "¡Listo! Turno confirmado para hoy 16:00 ✅", time: "16:03" },
 ];
 
-function ChatPhone() {
+export function ChatPhone() {
   const reduce = useReducedMotion();
   const [visible, setVisible] = useState(reduce ? CHAT_SCRIPT.length : 0);
   const [typing, setTyping] = useState(false);
@@ -158,7 +158,7 @@ function formatTime(sec: number) {
   return `${m}:${s}`;
 }
 
-function CallPhone() {
+export function CallPhone() {
   const reduce = useReducedMotion();
   const [sec, setSec] = useState(1);
   const [typed, setTyped] = useState(reduce ? CALL_LINES[0] : "");
@@ -291,5 +291,43 @@ export default function AgentsFanMockup() {
         </PhoneShell>
       </div>
     </div>
+  );
+}
+
+/* ============================================================
+   Mockups standalone de un solo celular (cards separadas):
+   uno para Agente de Chat, otro para Agente Telefónico. Cada
+   uno flota suavemente para dar vida sin distraer. Bajo
+   reduced-motion queda quieto.
+   ============================================================ */
+
+function SinglePhone({ children }: { children: React.ReactNode }) {
+  const reduce = useReducedMotion();
+  return (
+    <div className="agents-single" aria-hidden>
+      <motion.div
+        className="agents-single-phone"
+        animate={reduce ? undefined : { y: [0, -10, 0] }}
+        transition={{ duration: 5, ease: "easeInOut", repeat: Infinity }}
+      >
+        <PhoneShell>{children}</PhoneShell>
+      </motion.div>
+    </div>
+  );
+}
+
+export function AgentChatMockup() {
+  return (
+    <SinglePhone>
+      <ChatPhone />
+    </SinglePhone>
+  );
+}
+
+export function AgentCallMockup() {
+  return (
+    <SinglePhone>
+      <CallPhone />
+    </SinglePhone>
   );
 }

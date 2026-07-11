@@ -49,12 +49,23 @@
   --shadow-card: 0 15px 30px rgba(var(--shadow-rgb), 0.3);
   --shadow-elevated: 0 20px 40px rgba(var(--shadow-rgb), 0.4);
   --shadow-accent: 0 0 20px rgba(var(--accent-rgb), 0.15);
+
+  /* --- Semantic: movimiento ---
+     Misma curva "expo-out" que el sistema de Framer Motion (components/motion.ts).
+     Unifica el feel de los hovers en CSS con las entradas animadas. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Ninguna imagen o video puede empujar el layout más ancho que su contenedor. */
+img,
+video {
+  max-width: 100%;
 }
 
 html {
@@ -255,12 +266,30 @@ h6,
   margin-bottom: 1rem;
 }
 
+/* Subrayado tipo marcador (trazo celeste con bordes irregulares) */
+.marker-underline {
+  position: relative;
+  display: inline-block;
+}
+.marker-underline::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -3px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 4px 9px 5px 8px;
+  opacity: 0.75;
+  transform: rotate(-1deg);
+}
+
 /* ---- Separador: espacio vacio (transparente) para que la animacion del hero
    se termine de ver antes de la lamp. No lleva fondo para no tapar el video
    fijo del hero, que se desvanece solo por su propia opacidad. ---- */
 .hero-lamp-gap {
   width: 100%;
-  height: 45vh;
+  height: 37vh;
 }
 
 /* ---- Lamp effect (adaptado de Aceternity UI a CSS plano) ---- */
@@ -273,8 +302,8 @@ h6,
   justify-content: flex-start;
   overflow: hidden;
   width: 100%;
-  min-height: 44rem;
-  padding-top: 6rem;
+  min-height: 34rem;
+  padding-top: 4rem;
 }
 
 .lamp-stage {
@@ -434,7 +463,7 @@ h6,
   font-weight: 600;
   letter-spacing: -0.03em;
   font-size: clamp(2rem, 5vw, 3.25rem);
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.4rem;
   background: linear-gradient(to bottom right, #ffffff, var(--muted));
   -webkit-background-clip: text;
   background-clip: text;
@@ -578,7 +607,7 @@ h6,
 /* ---- Services Section ---- */
 .services-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -593,7 +622,7 @@ h6,
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
 .service-card:hover {
@@ -628,7 +657,16 @@ h6,
 .service-title {
   font-size: 1.5rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Frase corta (italic) debajo del título de cada servicio. */
+.service-tagline {
+  font-style: italic;
+  color: var(--accent);
+  font-size: 1.02rem;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
 }
 
 .service-desc {
@@ -687,6 +725,53 @@ h6,
   gap: 5rem;
 }
 
+/* Conector entre Agente Telefónico y Agente de Chat: se pueden combinar. */
+.combine-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: -1.5rem 0;
+}
+
+.combine-line {
+  flex: 1;
+  max-width: 120px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--accent-rgb), 0.5),
+    transparent
+  );
+}
+
+.combine-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .combine-pill {
+    font-size: 0.8rem;
+    padding: 0.55rem 1rem;
+    white-space: normal;
+    text-align: center;
+  }
+  .combine-line {
+    max-width: 40px;
+  }
+}
+
 .service-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -718,7 +803,7 @@ h6,
   flex-direction: column;
   position: relative;
   height: 100%;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
 .service-info-card:hover {
@@ -734,6 +819,81 @@ h6,
 
 .service-info-card-highlighted:hover {
   box-shadow: 0 15px 40px rgba(var(--accent-rgb), 0.25);
+}
+
+/* ---- Vibra Care: franja de cierre ancho completo (sin CTA) ---- */
+.vibra-care-strip {
+  margin-top: 5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.75rem;
+  padding: 2.5rem 2.25rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    120deg,
+    rgba(var(--accent-rgb), 0.07) 0%,
+    rgba(var(--foreground-rgb), 0.02) 100%
+  );
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+
+.vibra-care-icon {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+
+.vibra-care-content {
+  flex: 1;
+}
+
+.vibra-care-content h3 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.services-section .vibra-care-desc {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 640px;
+  margin-bottom: 1.5rem;
+}
+
+.vibra-care-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+}
+
+.vibra-care-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--foreground);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
+  .vibra-care-strip {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 2rem 1.5rem;
+  }
+  .vibra-care-features {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 }
 
 /* La descripción no debe estirarse (el CTA se empuja con margin-top:auto). */
@@ -960,7 +1120,7 @@ h6,
 /* ---- Proceso Section ---- */
 .process-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -975,7 +1135,7 @@ h6,
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
 .process-step:hover {
@@ -1016,11 +1176,27 @@ h6,
   border: 1px solid rgba(var(--foreground-rgb), 0.1);
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s var(--ease-out),
+    background-color 0.3s var(--ease-out);
 }
 
-.faq-item-open {
+.faq-item:hover {
+  border-color: rgba(var(--accent-rgb), 0.3);
+  background: rgba(var(--foreground-rgb), 0.05);
+}
+
+.faq-item-open,
+.faq-item-open:hover {
   border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+/* El "+" gira un poco y toma el color de acento al pasar por encima */
+.faq-question {
+  transition: color 0.25s var(--ease-out);
+}
+
+.faq-question:hover {
+  color: var(--accent);
 }
 
 .faq-question {
@@ -1078,7 +1254,7 @@ h6,
 
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 2rem;
   max-width: 1000px;
   margin: 0 auto;
@@ -1095,6 +1271,15 @@ h6,
   align-items: center;
   text-align: center;
   gap: 0.5rem;
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
+    background-color 0.3s var(--ease-out);
+}
+
+.team-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.04);
+  box-shadow: 0 18px 40px rgba(var(--shadow-rgb), 0.35),
+    0 0 22px rgba(var(--accent-rgb), 0.12);
 }
 
 .team-avatar {
@@ -1105,6 +1290,12 @@ h6,
   border: 1px solid rgba(var(--accent-rgb), 0.25);
   margin-bottom: 1rem;
   overflow: hidden;
+  transition: transform 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+}
+
+.team-card:hover .team-avatar {
+  transform: scale(1.06);
+  border-color: rgba(var(--accent-rgb), 0.5);
 }
 
 .team-name {
@@ -1128,6 +1319,13 @@ h6,
   border-radius: var(--radius-lg);
   padding: 3.5rem 2rem;
   box-shadow: 0 20px 40px rgba(var(--shadow-rgb), 0.35);
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+}
+
+.guarantee-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  box-shadow: 0 26px 52px rgba(var(--shadow-rgb), 0.42),
+    0 0 30px rgba(var(--accent-rgb), 0.18);
 }
 
 .guarantee-badge {
@@ -1159,7 +1357,7 @@ h6,
 /* ---- Antes / Después ---- */
 .compare-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: 2rem;
   max-width: 1000px;
   margin: 0 auto;
@@ -1169,6 +1367,7 @@ h6,
 .compare-card {
   border-radius: var(--radius-md);
   padding: 2.5rem 2rem;
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
 .compare-card-before {
@@ -1176,10 +1375,21 @@ h6,
   border: 1px solid rgba(var(--foreground-rgb), 0.08);
 }
 
+.compare-card-before:hover {
+  border-color: rgba(var(--foreground-rgb), 0.18);
+  box-shadow: 0 18px 40px rgba(var(--shadow-rgb), 0.3);
+}
+
 .compare-card-after {
   background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--background-rgb), 0) 100%);
   border: 1px solid rgba(var(--accent-rgb), 0.4);
   box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.15);
+}
+
+.compare-card-after:hover {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 18px 44px rgba(var(--shadow-rgb), 0.35),
+    0 0 28px rgba(var(--accent-rgb), 0.22);
 }
 
 .compare-heading {
@@ -1235,6 +1445,68 @@ h6,
   width: 100%;
   height: clamp(420px, 64vw, 540px);
   pointer-events: none; /* mockup decorativo */
+}
+
+/* Mockup de un solo celular (Agente de Chat / Agente Telefónico por separado).
+   Centrado, flotando suave, con sombra para despegarlo del fondo. */
+.agents-single {
+  position: relative;
+  width: 100%;
+  min-height: clamp(420px, 60vw, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.agents-single-phone {
+  width: clamp(220px, 42vw, 280px);
+  filter: drop-shadow(0 24px 44px rgba(var(--shadow-rgb), 0.5));
+}
+
+/* Radios escalados al ancho real del frame (~280px) para que las esquinas
+   mantengan la silueta de celular y no queden ni cuadradas ni tipo pastilla.
+   Relación del sitio: display = frame - borde - padding. */
+.agents-single-phone .mockup-phone {
+  border-width: 5px;
+  border-radius: 60px;
+  padding: 6px;
+}
+.agents-single-phone .mockup-phone-display {
+  border-radius: 49px;
+}
+
+/* La isla dinámica (cámara) vive arriba y al centro: empujamos el contenido
+   de cada UI para que el header/estado nunca queden tapados por ella. */
+.agents-single-phone .wa-header {
+  padding-top: 22px;
+}
+.agents-single-phone .call-ui {
+  padding-top: 30px;
+}
+
+@media (max-width: 600px) {
+  .agents-single {
+    min-height: clamp(360px, 88vw, 460px);
+  }
+  .agents-single-phone {
+    width: clamp(190px, 56vw, 240px);
+  }
+  /* frame más chico → radios y clearance de isla proporcionalmente menores */
+  .agents-single-phone .mockup-phone {
+    border-width: 4px;
+    border-radius: 44px;
+    padding: 4px;
+  }
+  .agents-single-phone .mockup-phone-display {
+    border-radius: 36px;
+  }
+  .agents-single-phone .wa-header {
+    padding-top: 18px;
+  }
+  .agents-single-phone .call-ui {
+    padding-top: 24px;
+  }
 }
 
 .agents-fan-phone {
@@ -1839,5 +2111,528 @@ h6,
   }
   .dash-stat {
     padding: 8px 6px;
+  }
+}
+
+/* ============================================================
+   CRM dashboard mockup (fila destacada "Solución a Medida")
+   Compu adelante + celular atrás/escalonado, mismo dashboard.
+   Patrón fan como el combo: la compu está en el flujo normal (define la
+   altura) y el celular va absolute asomando por detrás.
+   ============================================================ */
+.crm-fan {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* Compu: reutiliza .mockup-desktop pero un poco más ancha (protagonista) */
+.crm-fan .mockup-desktop.crm-fan-desktop {
+  position: relative;
+  z-index: 2;
+  max-width: 560px;
+  box-shadow: 0 26px 60px rgba(var(--shadow-rgb), 0.55),
+    0 0 46px rgba(var(--accent-rgb), 0.14);
+}
+
+/* Celular atrás/escalonado: asoma bien por la IZQUIERDA, apenas superpuesto al
+   borde izquierdo de la compu. Más chico que el monitor: su base queda POR
+   ARRIBA de la base de la compu (no cuelga por abajo). */
+.crm-fan-phone {
+  position: absolute;
+  z-index: 1;
+  top: -7%;
+  left: -25%;
+  width: 28%;
+  max-width: 168px;
+  transform: rotate(-6deg);
+  filter: brightness(0.98) saturate(1)
+    drop-shadow(0 26px 46px rgba(var(--shadow-rgb), 0.62));
+}
+
+/* Radio del frame escalado al celular chico (misma relación que agents-fan) */
+.crm-fan-phone .mockup-phone {
+  border-width: 4px;
+  border-radius: 34px;
+  padding: 4px;
+  box-shadow: none;
+}
+.crm-fan-phone .mockup-phone-display {
+  border-radius: 27px;
+  background: var(--background);
+}
+
+/* Pantalla de la compu: override del .mockup-screen (bloque + padding + fondo) */
+.crm-screen {
+  display: block;
+  padding: 10px 11px;
+  background: var(--background);
+  overflow: hidden;
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.crm-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  height: 100%;
+}
+
+/* ---- Stats (4) ---- */
+.crm-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.crm-stat {
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: rgba(var(--foreground-rgb), 0.04);
+  border: 1px solid rgba(var(--foreground-rgb), 0.08);
+  min-width: 0;
+}
+
+.crm-stat-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.crm-stat-value {
+  margin-top: 5px;
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.crm-stat-label {
+  margin-top: 3px;
+  font-size: 7.5px;
+  line-height: 1.2;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---- Zona central: lista + gráfico | feed ---- */
+.crm-main {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.crm-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.crm-col-list {
+  flex: 1.7;
+}
+.crm-col-feed {
+  flex: 1;
+}
+
+.crm-panel {
+  padding: 8px 9px;
+  border-radius: 9px;
+  background: rgba(var(--foreground-rgb), 0.03);
+  border: 1px solid rgba(var(--foreground-rgb), 0.07);
+}
+.crm-panel-grow {
+  flex: 1;
+  min-height: 0;
+}
+
+.crm-sec-title {
+  display: block;
+  font-size: 7.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---- Lista de conversaciones ---- */
+.crm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.crm-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.crm-row-ch,
+.crm-mrow-ch {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* Ícono de canal teléfono: círculo celeste para diferenciar del verde de WA */
+.crm-ch-phone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+}
+
+.crm-row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.crm-row-name {
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-row-action {
+  font-size: 7.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Badges de estado ---- */
+.crm-badge {
+  flex-shrink: 0;
+  font-size: 6.8px;
+  font-weight: 600;
+  padding: 2.5px 6px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.crm-badge-atendido {
+  color: #34d97b;
+  background: rgba(52, 217, 123, 0.12);
+  border: 1px solid rgba(52, 217, 123, 0.3);
+}
+.crm-badge-turno {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+}
+.crm-badge-pendiente {
+  color: #ffb020;
+  background: rgba(255, 176, 32, 0.12);
+  border: 1px solid rgba(255, 176, 32, 0.32);
+}
+
+/* ---- Gráfico semanal ---- */
+.crm-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 34px;
+  margin-top: 7px;
+}
+
+.crm-bar {
+  flex: 1;
+  height: 100%;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-rgb), 0.6),
+    rgba(var(--accent-rgb), 0.12)
+  );
+  transform-origin: bottom;
+  transform: scaleY(0);
+}
+
+.crm-chart-labels {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+}
+.crm-chart-labels span {
+  flex: 1;
+  text-align: center;
+  font-size: 6px;
+  color: var(--muted);
+}
+
+/* ---- Feed en vivo ---- */
+.crm-feed-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.crm-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 6.5px;
+  letter-spacing: 0.04em;
+  color: #34d97b;
+}
+.crm-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #34d97b;
+  box-shadow: 0 0 6px rgba(52, 217, 123, 0.9);
+  animation: crmLivePulse 1.8s ease-in-out infinite;
+}
+@keyframes crmLivePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+.crm-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.crm-feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.crm-feed-icon,
+.crm-mfeed-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  color: var(--accent);
+}
+
+.crm-feed-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.crm-feed-text {
+  font-size: 7.5px;
+  line-height: 1.35;
+  color: var(--foreground);
+}
+
+.crm-feed-time {
+  margin-top: 1px;
+  font-size: 6.5px;
+  color: var(--muted);
+}
+
+/* ============================================================
+   Vista CELULAR — mismo dashboard apilado en columna
+   ============================================================ */
+.crm-phone-ui {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+  padding: 7px 6px;
+  background: var(--background);
+  font-family: var(--font-body), system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.crm-m-head {
+  font-size: 6px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.crm-mstats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.crm-mstat {
+  padding: 5px 6px;
+  border-radius: 7px;
+  background: rgba(var(--foreground-rgb), 0.04);
+  border: 1px solid rgba(var(--foreground-rgb), 0.08);
+  min-width: 0;
+}
+.crm-mstat-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+.crm-mstat-value {
+  margin-top: 3px;
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.crm-mstat-label {
+  margin-top: 2px;
+  font-size: 5.5px;
+  line-height: 1.2;
+  color: var(--muted);
+}
+
+.crm-mchart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+.crm-mbar {
+  flex: 1;
+  height: 100%;
+  border-radius: 1.5px 1.5px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-rgb), 0.6),
+    rgba(var(--accent-rgb), 0.12)
+  );
+  transform-origin: bottom;
+  transform: scaleY(0);
+}
+
+.crm-mlist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.crm-mrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.crm-mrow-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 6.5px;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crm-mbadge {
+  flex-shrink: 0;
+  font-size: 5px;
+  font-weight: 600;
+  padding: 1.5px 4px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.crm-mfeed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 1px;
+}
+.crm-mfeed-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+.crm-mfeed-icon {
+  width: 13px;
+  height: 13px;
+}
+.crm-mfeed-text {
+  font-size: 6px;
+  line-height: 1.3;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Responsive de la landing ---- */
+@media (max-width: 600px) {
+  .crm-fan-phone {
+    width: 30%;
+    left: -11%;
+    top: -4%;
+  }
+  .crm-stat-value {
+    font-size: 16px;
+  }
+  .crm-stat {
+    padding: 6px;
+  }
+}
+
+/* Muy angosto: el celular podría desbordar → dejamos solo la compu centrada */
+@media (max-width: 460px) {
+  .crm-fan-phone {
+    display: none;
+  }
+}
+
+/* ---- Ritmo y padding en mobile: menos aire vertical, menos margen lateral ---- */
+@media (max-width: 640px) {
+  .section {
+    padding: 4.5rem 1.25rem;
+  }
+  .header-container {
+    padding: 1.1rem 1.25rem;
+  }
+  .service-rows {
+    gap: 3.5rem;
+  }
+  /* La franja Vibra Care no necesita tanto aire arriba en mobile. */
+  .vibra-care-strip {
+    margin-top: 3rem;
+  }
+}
+
+/* ---- Teléfonos muy chicos (<380px): ajustes finos anti-desborde ---- */
+@media (max-width: 380px) {
+  .tagline {
+    letter-spacing: 0.3em;
+  }
+  .header-logo img {
+    height: 32px;
+  }
+  .section {
+    padding: 4rem 1rem;
   }
 }

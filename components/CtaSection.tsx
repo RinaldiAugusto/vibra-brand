@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Button from "./Button";
+import { fadeItem, staggerContainer, viewportOnce } from "./motion";
 
 export default function CtaSection() {
   return (
@@ -13,17 +14,25 @@ export default function CtaSection() {
       className="cta-section"
       id="contacto-final"
     >
-      <div className="cta-content">
-        <h2 className="cta-title font-heading">¿Listo para escalar con IA?</h2>
-        <p className="cta-description">
+      <motion.div
+        className="cta-content"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+      >
+        <motion.h2 variants={fadeItem} className="cta-title font-heading">
+          ¿Listo para escalar con IA?
+        </motion.h2>
+        <motion.p variants={fadeItem} className="cta-description">
           Agenda una llamada con nuestro equipo técnico y descubrí cómo podemos transformar tu negocio con agentes de IA a medida.
-        </p>
-        <a href="mailto:contacto@vibra.agency">
+        </motion.p>
+        <motion.a variants={fadeItem} href="mailto:contacto@vibra.agency">
           <Button style={{ padding: "1rem 2rem", fontSize: "1.125rem" }}>
             Hablar con un experto
           </Button>
-        </a>
-      </div>
+        </motion.a>
+      </motion.div>
     </motion.section>
   );
 }

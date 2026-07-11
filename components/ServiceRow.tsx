@@ -2,18 +2,32 @@
 
 import { motion } from "framer-motion";
 import Button from "./Button";
-import AgentsFanMockup from "./AgentsFanMockup";
+import AgentsFanMockup, {
+  AgentChatMockup,
+  AgentCallMockup,
+} from "./AgentsFanMockup";
 import AutomationDesktopMockup from "./AutomationDesktopMockup";
+import CrmDashboardMockup from "./CrmDashboardMockup";
 
 export interface ServiceSubBlock {
   title: string;
   description: string;
 }
 
-export type MockupType = "phone" | "desktop" | "combo" | "agents" | "ops";
+export type MockupType =
+  | "phone"
+  | "desktop"
+  | "combo"
+  | "agents"
+  | "chat"
+  | "call"
+  | "ops"
+  | "crm";
 
 export interface ServiceRowProps {
   title: string;
+  /** Frase corta (italic) debajo del título. */
+  tagline?: string;
   description: string;
   bullets: string[];
   mockup: MockupType;
@@ -31,6 +45,8 @@ export interface ServiceRowProps {
   phoneVideoSrc?: string;
   /** Destino del CTA. */
   ctaHref: string;
+  /** Texto del botón CTA. */
+  ctaLabel?: string;
 }
 
 // ---- Frames de mockup en CSS puro ----
@@ -91,7 +107,10 @@ function Mockup({
       {/* El video solo va en el celular standalone; el combo (fila 4) queda intacto. */}
       {type === "phone" && <PhoneFrame videoSrc={phoneVideoSrc} />}
       {type === "agents" && <AgentsFanMockup />}
+      {type === "chat" && <AgentChatMockup />}
+      {type === "call" && <AgentCallMockup />}
       {type === "ops" && <AutomationDesktopMockup />}
+      {type === "crm" && <CrmDashboardMockup />}
       {type === "desktop" && <DesktopFrame />}
       {type === "combo" && (
         // Computadora al frente + un celular asomando por detrás del lado izquierdo.
@@ -112,6 +131,7 @@ function Mockup({
 
 export default function ServiceRow({
   title,
+  tagline,
   description,
   bullets,
   mockup,
@@ -122,6 +142,7 @@ export default function ServiceRow({
   caption,
   phoneVideoSrc,
   ctaHref,
+  ctaLabel = "Adaptar a mi negocio",
 }: ServiceRowProps) {
   return (
     <motion.div
@@ -142,6 +163,7 @@ export default function ServiceRow({
         )}
 
         <h3 className="service-title font-heading">{title}</h3>
+        {tagline && <p className="service-tagline">{tagline}</p>}
         <p className="service-desc">{description}</p>
 
         {subBlocks && subBlocks.length > 0 && (
@@ -179,7 +201,7 @@ export default function ServiceRow({
 
         <a href={ctaHref} style={{ width: "100%", display: "block", marginTop: "auto" }}>
           <Button style={{ width: "100%", padding: "1rem" }}>
-            Agendá una llamada
+            {ctaLabel}
           </Button>
         </a>
       </div>

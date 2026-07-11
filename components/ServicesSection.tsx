@@ -1,103 +1,208 @@
 "use client";
 
+import { Fragment } from "react";
+import { motion } from "framer-motion";
 import ServiceRow, { ServiceRowProps } from "./ServiceRow";
+import { fadeUp, viewportOnce } from "./motion";
 
 // Mismo destino que el botón principal de la landing (Header → CTA final).
 const CTA_HREF = "#contacto-final";
 
-// ---- Datos de las 4 filas ----
-// El lado del mockup alterna solo: filas impares (index 1, 3) llevan reverse.
+// ---- Datos de las filas de servicio ----
+// El lado del mockup alterna solo: filas pares (index 0, 2, 4) llevan reverse
+// (mockup a la izquierda). El CRM de Sistema Total necesita quedar a la
+// izquierda: su celular asoma hacia ese lado y así no choca con la card.
 const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
   {
-    // FILA 1 — card izquierda / mockup derecha
-    title: "Presencia Digital",
+    // FILA 1 — Sistema Total (mockup izquierda / card derecha, DESTACADA)
+    title: "Sistema Total",
+    tagline:
+      "Tu software, con tu lógica, tus procesos ahora automatizados y tus agentes adentro.",
     description:
-      "Tu negocio, visible y profesional en internet. Creamos la página que hace que tus clientes te encuentren, confíen en vos y te contacten.",
+      "No es una herramienta más: es TU sistema, hecho a medida. Toda tu operación —captar, atender, vender y hacer seguimiento— en un solo lugar que es 100% tuyo.",
     bullets: [
-      "Diseño profesional a medida",
-      "Rápida y lista en cualquier pantalla",
-      "Preparada para captar clientes",
+      "Hecho a tu medida, con las operaciones que necesites",
+      "Todo integrado: web, agentes y automatizaciones",
+      "Es tuyo y escala con vos",
     ],
-    mockup: "phone",
-    // Demo viva en el frame de celular.
-    phoneVideoSrc: "/videos/presencia-digital-demo.mp4",
+    mockup: "crm",
+    highlighted: true,
+    badge: "MÁS POPULAR",
   },
   {
-    // FILA 2 — mockup izquierda / card derecha
-    title: "Agentes para Atención Automática",
+    // FILA 2 — Agente Telefónico (card izquierda / mockup derecha)
+    title: "Agente Telefónico",
+    tagline:
+      "Un empleado que atiende y llama por voz — el teléfono que nunca suena ocupado.",
     description:
-      "Nunca más dejes a un cliente esperando. Creamos asistentes con inteligencia artificial que responden consultas y agendan turnos por vos, las 24 horas. Elegí el canal que tu negocio necesita.",
-    subBlocks: [
-      {
-        title: "Agente de Chat",
-        description:
-          "Atiende por WhatsApp y tu web. Responde consultas, agenda turnos y capta clientes por texto, al instante.",
-      },
-      {
-        title: "Agente Telefónico",
-        description:
-          "Contesta las llamadas con voz natural. Agenda citas y filtra consultas por teléfono, sin que tengas que atender vos.",
-      },
-    ],
+      "Atiende llamadas entrantes y hace llamadas salientes con voz natural. Confirma, coordina y da la correcta información sin que nadie de tu equipo levante un teléfono.",
     bullets: [
-      "Responde al instante, siempre",
-      "Agenda turnos automáticamente",
-      "Uno, otro, o los dos combinados",
+      "Cero llamadas perdidas, aunque suenen todas a la vez",
+      "Llama por vos: confirma turnos y recuerda pagos",
+      "Habla natural y deriva a un humano cuando hace falta",
     ],
-    // Dos celulares animados en fan: llamada adelante, chat de WhatsApp detrás.
-    mockup: "agents",
+    // Un solo celular con la llamada en curso animada.
+    mockup: "call",
   },
   {
-    // FILA 3 — card izquierda / mockup derecha (compu / n8n)
+    // FILA 3 — Agente de Chat (mockup izquierda / card derecha)
+    title: "Agente de Chat",
+    tagline: "Un empleado que atiende por texto 24/7 — y nunca se toma franco.",
+    description:
+      "Contesta a tus clientes al instante por web y WhatsApp, a cualquier hora. Vende, agenda y responde como tu mejor empleado, sin sueldo fijo ni descansos.",
+    bullets: [
+      "Nunca pierdas un cliente por no contestar a tiempo",
+      "Atiende a 100 personas a la vez, sin esperas",
+      "Se conecta a tu agenda y a tus herramientas",
+    ],
+    // Un solo celular con el chat de WhatsApp animado.
+    mockup: "chat",
+  },
+  {
+    // FILA 4 — Operaciones Automatizadas (card izquierda / mockup derecha)
     title: "Operaciones Automatizadas",
+    tagline:
+      "Las tareas repetitivas de tus empleados, ahora hechas solas — ahorrando tu tiempo.",
     description:
-      "Dejá de perder horas en tareas repetitivas. Conectamos y automatizamos los procesos internos de tu negocio para que todo funcione solo, sin errores ni olvidos.",
+      "Todo ese trabajo manual que come horas —cargar datos, mandar mails, pasar info de un lado a otro— pasa a hacerse solo y sin errores. Tu equipo se dedica a lo que de verdad importa.",
     bullets: [
-      "Menos trabajo manual",
-      "Tus herramientas, conectadas entre sí",
-      "Reportes y seguimientos automáticos",
+      "Recuperá las horas que tu equipo pierde en lo manual",
+      "Cero errores de carga: la info fluye sola",
+      "Conecta lo que ya usás (planillas, CRM, mail)",
     ],
     // Mockup de compu con animacion de 2 escenas (flujo + dashboard) en loop.
     mockup: "ops",
     caption: "Así se ve el sistema que trabaja por vos",
   },
   {
-    // FILA 4 — mockup izquierda / card derecha (DESTACADA)
-    title: "Solución a Medida",
+    // FILA 5 — Presencia (mockup izquierda / card derecha)
+    title: "Presencia",
+    tagline:
+      "La cara de tu negocio online — hecha para vender, no solo para verse linda.",
     description:
-      "La solución definitiva. Desarrollamos un sistema completo y a medida para tu negocio, que combina web, atención automática y automatización de procesos en una sola herramienta hecha para vos.",
+      "Tu web, landing o aplicación web diseñada para convertir visitas en clientes. Rápida, profesional y pensada para que la gente te encuentre y te elija.",
     bullets: [
-      "Todo integrado en un solo sistema",
-      "Hecho 100% a tu medida",
-      "Web + atención + automatización",
+      "Una primera impresión que genera confianza",
+      "Hecha para convertir visitas en contactos",
+      "Rápida, optimizada para Google y celulares",
     ],
-    mockup: "combo",
-    highlighted: true,
-    badge: "MÁS POPULAR",
+    mockup: "phone",
+    // Demo viva en el frame de celular.
+    phoneVideoSrc: "/videos/presencia-digital-demo.mp4",
   },
+];
+
+// ---- Franja de cierre: Vibra Care (ancho completo, sin botón) ----
+const VIBRA_CARE_BULLETS = [
+  "Todo siempre funcionando: monitoreo y soporte",
+  "Mejora continua: tus agentes se afinan mes a mes",
+  "Un equipo detrás para ajustar y sumar lo que necesites",
 ];
 
 export default function ServicesSection() {
   return (
     <section className="section services-section" id="servicios">
-      <div style={{ textAlign: "center", marginBottom: "4rem" }}>
-        <p className="eyebrow">Nuestros Servicios</p>
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+        style={{ textAlign: "center", marginBottom: "4rem" }}
+      >
+        <p className="eyebrow">
+          <span className="marker-underline">Nuestros Servicios</span>
+        </p>
         <h2 className="font-heading">Soluciones que liberan tu tiempo.</h2>
         <p style={{ margin: "0 auto" }}>
           Elegí el nivel de automatización que tu negocio necesita.
         </p>
-      </div>
+      </motion.div>
 
       <div className="service-rows">
         {rows.map((row, index) => (
-          <ServiceRow
-            key={row.title}
-            {...row}
-            reverse={index % 2 === 1}
-            ctaHref={CTA_HREF}
-          />
+          <Fragment key={row.title}>
+            <ServiceRow {...row} reverse={index % 2 === 0} ctaHref={CTA_HREF} />
+
+            {/* Conector: los dos agentes se pueden combinar en uno solo. */}
+            {row.title === "Agente Telefónico" && (
+              <div className="combine-connector" aria-label="Se pueden combinar ambos agentes">
+                <span className="combine-line" aria-hidden />
+                <span className="combine-pill">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <polyline points="8 3 4 7 8 11" />
+                    <polyline points="16 13 20 17 16 21" />
+                    <path d="M4 7h11a5 5 0 015 5v0" />
+                    <path d="M20 17H9a5 5 0 01-5-5v0" />
+                  </svg>
+                  Combiná ambos en un solo agente
+                </span>
+                <span className="combine-line" aria-hidden />
+              </div>
+            )}
+          </Fragment>
         ))}
       </div>
+
+      {/* Vibra Care — no es un servicio más: sostiene a todos. Sin CTA. */}
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+        className="vibra-care-strip"
+      >
+        <div className="vibra-care-icon" aria-hidden>
+          <svg
+            width="30"
+            height="30"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+          </svg>
+        </div>
+        <div className="vibra-care-content">
+          <p className="eyebrow">El plan que lo sostiene todo</p>
+          <h3 className="font-heading">Vibra Care</h3>
+          <p className="vibra-care-desc">
+            Tu sistema siempre funcionando, mejorando y actualizado — sin que te
+            preocupes. Nosotros lo cuidamos, vos te dedicás a tu negocio.
+          </p>
+          <ul className="vibra-care-features">
+            {VIBRA_CARE_BULLETS.map((feat) => (
+              <li key={feat}>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {feat}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </motion.div>
     </section>
   );
 }
