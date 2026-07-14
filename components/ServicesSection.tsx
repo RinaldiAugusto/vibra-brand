@@ -162,7 +162,7 @@ export default function ServicesSection() {
       {/* Vibra Care — no es un servicio más: sostiene a todos. Sin CTA. */}
       <motion.div
         ref={careGlow.ref}
-        onPointerMove={careGlow.onPointerMove}
+        {...careGlow.handlers}
         variants={fadeUp}
         initial="hidden"
         whileInView="show"

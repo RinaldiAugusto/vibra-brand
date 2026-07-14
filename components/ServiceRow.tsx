@@ -193,7 +193,7 @@ export default function ServiceRow({
       {/* --- Lado card --- */}
       <div
         ref={glow.ref}
-        onPointerMove={glow.onPointerMove}
+        {...glow.handlers}
         className={`service-info-card border-glow ${
           highlighted ? "service-info-card-highlighted" : ""
         }`}
