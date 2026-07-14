@@ -11,3 +11,6 @@ build/
 .agents/
 skills-lock.json
 Captura de pantalla*.png
+
+# Fuentes de video pesadas (no versionar; se exportan a public/videos ya optimizadas)
+*.mov

@@ -841,6 +841,166 @@ h6,
   box-shadow: 0 15px 40px rgba(var(--accent-rgb), 0.25);
 }
 
+/* ============================================================
+   BorderGlow — borde que brilla siguiendo el cursor (react-bits,
+   variante JS-CSS) portado a CSS plano y teñido con el cyan de la
+   marca (--accent ≈ #29d3ee). El pointer-tracking lo hace el hook
+   useBorderGlow, que setea --edge-proximity y --cursor-angle.
+
+   Se SUMA sobre las cartas existentes: no toca su fondo/borde/padding,
+   solo agrega tres capas de brillo — ::before (malla en el borde),
+   ::after (relleno suave cerca del borde) y .edge-light (glow externo).
+   En reposo todas las capas quedan en opacity 0; aparecen al hover y se
+   intensifican según la cercanía del cursor al borde.
+   ============================================================ */
+.border-glow {
+  --edge-proximity: 0;
+  --cursor-angle: 45deg;
+  --edge-sensitivity: 30;
+  --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+  --glow-padding: 40px;
+  --cone-spread: 25;
+  --fill-opacity: 0.4;
+  --card-bg: var(--background);
+
+  /* Cyan de marca en distintas intensidades para el glow externo. */
+  --glow-color:    hsl(188 95% 70% / 100%);
+  --glow-color-60: hsl(188 95% 70% / 60%);
+  --glow-color-50: hsl(188 95% 70% / 50%);
+  --glow-color-40: hsl(188 95% 70% / 40%);
+  --glow-color-30: hsl(188 95% 70% / 30%);
+  --glow-color-20: hsl(188 95% 70% / 20%);
+  --glow-color-10: hsl(188 95% 70% / 10%);
+
+  /* Malla de gradientes, toda en familia cyan, para borde y relleno. */
+  --gradient-one:   radial-gradient(at 80% 55%, hsla(188, 100%, 70%, 1) 0px, transparent 50%);
+  --gradient-two:   radial-gradient(at 69% 34%, hsla(192, 100%, 64%, 1) 0px, transparent 50%);
+  --gradient-three: radial-gradient(at 8% 6%,   hsla(184, 100%, 74%, 1) 0px, transparent 50%);
+  --gradient-four:  radial-gradient(at 41% 38%, hsla(196, 95%, 60%, 1) 0px, transparent 50%);
+  --gradient-five:  radial-gradient(at 86% 85%, hsla(186, 100%, 74%, 1) 0px, transparent 50%);
+  --gradient-six:   radial-gradient(at 82% 18%, hsla(198, 100%, 66%, 1) 0px, transparent 50%);
+  --gradient-seven: radial-gradient(at 51% 4%,  hsla(183, 100%, 68%, 1) 0px, transparent 50%);
+  --gradient-base:  linear-gradient(#29d3ee 0 100%);
+
+  position: relative;
+  isolation: isolate;
+  transform: translate3d(0, 0, 0.01px);
+  overflow: visible;
+}
+
+.border-glow::before,
+.border-glow::after,
+.border-glow > .edge-light {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transition: opacity 0.25s ease-out;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.border-glow:not(:hover)::before,
+.border-glow:not(:hover)::after,
+.border-glow:not(:hover) > .edge-light {
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+}
+
+/* Borde: malla cyan revelada en un cono orientado hacia el cursor. */
+.border-glow::before {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card-bg) 0 100%) padding-box,
+    var(--gradient-one) border-box,
+    var(--gradient-two) border-box,
+    var(--gradient-three) border-box,
+    var(--gradient-four) border-box,
+    var(--gradient-five) border-box,
+    var(--gradient-six) border-box,
+    var(--gradient-seven) border-box,
+    var(--gradient-base) border-box;
+  opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+  mask-image: conic-gradient(
+    from var(--cursor-angle) at center,
+    black calc(var(--cone-spread) * 1%),
+    transparent calc((var(--cone-spread) + 15) * 1%),
+    transparent calc((100 - var(--cone-spread) - 15) * 1%),
+    black calc((100 - var(--cone-spread)) * 1%)
+  );
+}
+
+/* Relleno cyan suave apenas por dentro de los bordes (soft-light). */
+.border-glow::after {
+  border: 1px solid transparent;
+  background:
+    var(--gradient-one) padding-box,
+    var(--gradient-two) padding-box,
+    var(--gradient-three) padding-box,
+    var(--gradient-four) padding-box,
+    var(--gradient-five) padding-box,
+    var(--gradient-six) padding-box,
+    var(--gradient-seven) padding-box,
+    var(--gradient-base) padding-box;
+  mask-image:
+    linear-gradient(to bottom, black, black),
+    radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+    radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+    conic-gradient(from var(--cursor-angle) at center, transparent 5%, black 15%, black 85%, transparent 95%);
+  mask-composite: subtract, add, add, add, add, add;
+  opacity: calc(var(--fill-opacity) * (var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+  mix-blend-mode: soft-light;
+}
+
+/* Glow externo cyan: anillo que se enciende del lado del cursor. */
+.border-glow > .edge-light {
+  inset: calc(var(--glow-padding) * -1);
+  z-index: 1;
+  mask-image: conic-gradient(
+    from var(--cursor-angle) at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%
+  );
+  opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+  mix-blend-mode: plus-lighter;
+}
+
+.border-glow > .edge-light::before {
+  content: "";
+  position: absolute;
+  inset: var(--glow-padding);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px var(--glow-color),
+    inset 0 0 1px 0 var(--glow-color-60),
+    inset 0 0 3px 0 var(--glow-color-50),
+    inset 0 0 6px 0 var(--glow-color-40),
+    inset 0 0 15px 0 var(--glow-color-30),
+    inset 0 0 25px 2px var(--glow-color-20),
+    inset 0 0 50px 2px var(--glow-color-10),
+    0 0 1px 0 var(--glow-color-60),
+    0 0 3px 0 var(--glow-color-50),
+    0 0 6px 0 var(--glow-color-40),
+    0 0 15px 0 var(--glow-color-30),
+    0 0 25px 2px var(--glow-color-20),
+    0 0 50px 2px var(--glow-color-10);
+}
+
+/* El badge "Más Popular" queda por encima del glow externo. */
+.border-glow .premium-badge {
+  z-index: 2;
+}
+
+/* Respeta la preferencia de menos movimiento: sin transición de opacidad. */
+@media (prefers-reduced-motion: reduce) {
+  .border-glow::before,
+  .border-glow::after,
+  .border-glow > .edge-light {
+    transition: none;
+  }
+}
+
 /* ---- Vibra Care: franja de cierre ancho completo (sin CTA) ---- */
 .vibra-care-strip {
   margin-top: 5rem;
@@ -1050,6 +1210,55 @@ h6,
   height: 100%;
   object-fit: cover;
   object-position: var(--phone-video-pos, center top);
+}
+
+/* ---- Render 3D del celular (fila Presencia) ----
+   El video trae el iPhone sobre fondo NEGRO PURO (0,0,0). En vez de intentar
+   igualar un color horneado al fondo (frágil: el navegador decodifica el YUV
+   distinto y aparece un recuadro), usamos mix-blend-mode: lighten. lighten =
+   max(video, fondo) por canal: el negro y todo lo más oscuro que el fondo se
+   vuelve EXACTAMENTE el color del fondo (calculado desde el propio color CSS,
+   no un color almacenado) y solo el teléfono (más brillante) queda a la vista.
+   => imposible que haya borde, y funciona en todos los navegadores.
+   El contenedor lleva el mismo color de fondo + isolation:isolate para que el
+   lighten resuelva siempre contra ese #101117 (idéntico a la página), incluso
+   durante la animación de entrada con opacity. Viene recortado pegado al
+   teléfono, por eso llena el contenedor a esta escala. */
+.mockup-phone-render {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  background: var(--background);
+  isolation: isolate;
+}
+
+.mockup-phone-render > video {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: lighten;
+}
+
+/* ---- Render 3D de la laptop (fila Operaciones Automatizadas) ----
+   Mismo principio que .mockup-phone-render: el video trae la MacBook sobre
+   negro puro (0,0,0) y mix-blend-mode: lighten funde ese negro con el fondo
+   de la sección (resuelto contra el propio color CSS, sin bordes). Es
+   horizontal, por eso un contenedor más ancho. isolation:isolate garantiza
+   que el lighten resuelva siempre contra el #101117 de la página, incluso
+   durante la animación de entrada con opacity. */
+.mockup-desktop-render {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  background: var(--background);
+  isolation: isolate;
+}
+
+.mockup-desktop-render > video {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: lighten;
 }
 
 /* Frame de computadora (horizontal) */

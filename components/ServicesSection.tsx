@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { motion } from "framer-motion";
 import ServiceRow, { ServiceRowProps } from "./ServiceRow";
 import { fadeUp, viewportOnce } from "./motion";
+import { useBorderGlow } from "./useBorderGlow";
 
 // Mismo destino que el botón principal de la landing (Header → CTA final).
 const CTA_HREF = "#contacto-final";
@@ -41,8 +42,9 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Llama por vos: confirma turnos y recuerda pagos",
       "Habla natural y deriva a un humano cuando hace falta",
     ],
-    // Un solo celular con la llamada en curso animada.
-    mockup: "call",
+    // Render 3D de un iPhone con la llamada en curso (marco incluido en el video).
+    mockup: "phone-render",
+    phoneVideoSrc: "/videos/voicebot-render.mp4",
   },
   {
     // FILA 3 — Agente de Chat (mockup izquierda / card derecha)
@@ -55,8 +57,9 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Atiende a 100 personas a la vez, sin esperas",
       "Se conecta a tu agenda y a tus herramientas",
     ],
-    // Un solo celular con el chat de WhatsApp animado.
-    mockup: "chat",
+    // Render 3D de un iPhone con el chat de WhatsApp (marco incluido en el video).
+    mockup: "phone-render",
+    phoneVideoSrc: "/videos/chatbot-render.mp4",
   },
   {
     // FILA 4 — Operaciones Automatizadas (card izquierda / mockup derecha)
@@ -70,8 +73,10 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Cero errores de carga: la info fluye sola",
       "Conecta lo que ya usás (planillas, CRM, mail)",
     ],
-    // Mockup de compu con animacion de 2 escenas (flujo + dashboard) en loop.
-    mockup: "ops",
+    // Render 3D de una MacBook con 2 escenas (flujo + dashboard) en loop
+    // (marco incluido en el video).
+    mockup: "desktop-render",
+    phoneVideoSrc: "/videos/operaciones-render.mp4",
     caption: "Así se ve el sistema que trabaja por vos",
   },
   {
@@ -86,9 +91,9 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Hecha para convertir visitas en contactos",
       "Rápida, optimizada para Google y celulares",
     ],
-    mockup: "phone",
-    // Demo viva en el frame de celular.
-    phoneVideoSrc: "/videos/presencia-digital-demo.mp4",
+    // Render 3D de un iPhone mostrando una landing (marco incluido en el video).
+    mockup: "phone-render",
+    phoneVideoSrc: "/videos/presencia-render.mp4",
   },
 ];
 
@@ -100,6 +105,7 @@ const VIBRA_CARE_BULLETS = [
 ];
 
 export default function ServicesSection() {
+  const careGlow = useBorderGlow<HTMLDivElement>();
   return (
     <section className="section services-section" id="servicios">
       <motion.div
@@ -155,12 +161,15 @@ export default function ServicesSection() {
 
       {/* Vibra Care — no es un servicio más: sostiene a todos. Sin CTA. */}
       <motion.div
+        ref={careGlow.ref}
+        onPointerMove={careGlow.onPointerMove}
         variants={fadeUp}
         initial="hidden"
         whileInView="show"
         viewport={viewportOnce}
-        className="vibra-care-strip"
+        className="vibra-care-strip border-glow"
       >
+        <span className="edge-light" aria-hidden />
         <div className="vibra-care-icon" aria-hidden>
           <svg
             width="30"
