@@ -179,6 +179,16 @@ h6,
   animation: taglinePulse 3.2s ease-in-out infinite;
 }
 
+/* ---- Campo de estrellas del hero (componente Galaxy) ----
+   El posicionamiento (fixed a pantalla completa, blend, z-index) lo pone
+   VibraHero inline, igual que el resto de las capas del hero. Aca solo va
+   el contenedor del canvas. ---- */
+.galaxy-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
 /* ---- Wordmark ---- */
 .wordmark {
   position: relative;

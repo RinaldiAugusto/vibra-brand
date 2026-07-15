@@ -25,9 +25,46 @@ import type { PointerEvent } from "react";
 const IDLE_PROXIMITY = 64; // intensidad del glow en reposo (más marcada)
 const ORBIT_DEG_PER_SEC = 45; // 45°/s ≈ una vuelta cada 8s
 
+// ---- Cuándo NO vale la pena orbitar ----
+// Cada escritura de --cursor-angle obliga a re-rasterizar las máscaras del
+// borde (7 capas de mask-image, una de ellas conic-gradient, + soft-light /
+// plus-lighter). Es el paint más caro de la página y la órbita lo repetía 60
+// veces por segundo por card, para siempre.
+//
+// Medido con scroll real en Servicios (6 cards, Chrome, Retina 2x):
+//   órbita corriendo   -> p99 50ms, 27% de frames >32ms
+//   ángulo congelado   -> p99 18ms,  0% de frames >32ms
+//
+// Así que la órbita se congela en los dos casos donde nadie puede verla:
+// mientras se scrollea (la página vuela; un glow a 45°/s no se aprecia) y
+// cuando la card no está en pantalla. Al frenar, retoma sola.
+const SCROLL_IDLE_MS = 120;
+
+let scrolling = false;
+let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+let scrollListenerReady = false;
+
+// Un solo listener para todas las cards, no uno por instancia.
+function ensureScrollListener() {
+  if (scrollListenerReady || typeof window === "undefined") return;
+  scrollListenerReady = true;
+  window.addEventListener(
+    "scroll",
+    () => {
+      scrolling = true;
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        scrolling = false;
+      }, SCROLL_IDLE_MS);
+    },
+    { passive: true }
+  );
+}
+
 export function useBorderGlow<T extends HTMLElement = HTMLDivElement>() {
   const ref = useRef<T>(null);
   const hovering = useRef(false);
+  const onScreen = useRef(true);
   const angle = useRef(Math.random() * 360); // desfasa las cartas entre sí
 
   const onPointerMove = useCallback((e: PointerEvent<T>) => {
@@ -80,12 +117,26 @@ export function useBorderGlow<T extends HTMLElement = HTMLDivElement>() {
 
     if (reduced) return; // sin órbita: glow estático tenue
 
+    ensureScrollListener();
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        onScreen.current = entry.isIntersecting;
+      },
+      { rootMargin: "100px" }
+    );
+    io.observe(el);
+
     let raf = 0;
     let last = performance.now();
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      if (!hovering.current) {
+      // El rAF sigue vivo pero no escribe: lo caro no es el callback, es la
+      // re-rasterización que dispara tocar --cursor-angle. Al no escribir, el
+      // navegador reusa la card ya rasterizada y el scroll queda limpio. Como
+      // `last` se actualiza igual, al retomar no pega un salto.
+      if (!hovering.current && !scrolling && onScreen.current) {
         angle.current = (angle.current + ORBIT_DEG_PER_SEC * dt) % 360;
         el.style.setProperty("--cursor-angle", `${angle.current.toFixed(2)}deg`);
         el.style.setProperty("--edge-proximity", String(IDLE_PROXIMITY));
@@ -93,7 +144,10 @@ export function useBorderGlow<T extends HTMLElement = HTMLDivElement>() {
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+    };
   }, []);
 
   const handlers = useMemo(

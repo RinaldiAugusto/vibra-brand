@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   motion,
   useScroll,
   useTransform,
   useMotionTemplate,
   useMotionValue,
+  useMotionValueEvent,
   useAnimationFrame,
   useTime,
   useReducedMotion,
@@ -14,6 +15,7 @@ import {
 } from "framer-motion";
 
 import Image from "next/image";
+import Galaxy from "./Galaxy";
 
 const MotionImage = motion.create(Image);
 
@@ -29,6 +31,11 @@ const shrinkEase = cubicBezier(0.25, 0.9, 0.3, 1);
 
 /**
  * Hero scroll-driven, pinned — morph real entre 3 imagenes via video:
+ *  0. Un campo de estrellas WebGL (Galaxy) es el telon de fondo de toda la
+ *     escena: deriva y titila solo, sin reaccionar al mouse, para no
+ *     competir con el morph, que lo maneja el scroll. Una mascara radial le
+ *     abre un hueco en el centro para que el campo nunca se apoye sobre la
+ *     estrella principal; el hueco respira con el mismo latido del halo.
  *  1. hero_1 (el estallido) llena la pantalla y titila organico: brillo con
  *     tres ondas superpuestas + una copia difuminada (bloom) cuya opacidad
  *     respira, asi el halo de la estrella se expande y contrae.
@@ -54,6 +61,7 @@ const shrinkEase = cubicBezier(0.25, 0.9, 0.3, 1);
  *   video B  [0.38 - 0.66]  scrub en [0.44, 0.63]  (crossfade directo con A)
  *   hero_3   [0.62 - 0.80]  empalma grande con el video B y vuela [0.66-0.80]
  *                           hasta el lado del boton "Agenda una Llamada"
+ *   galaxy   [0    - 0.85]  se apaga en [0.66, 0.85], acompanando el vuelo
  */
 export default function VibraHero() {
   const ref = useRef<HTMLElement>(null);
@@ -122,6 +130,29 @@ export default function VibraHero() {
     [burstScale, haloPulse],
     ([s, b]: number[]) => s * (1 + 0.12 * clamp01(b))
   );
+
+  // ---- campo de estrellas: telon de fondo de la escena ----
+  // Se apaga junto al vuelo de hero_3: cuando el cluster termina de dockear
+  // en el header ya no queda espacio en pantalla y entra la LampSection.
+  const starsOpacity = useTransform(scrollYProgress, [0.66, 0.85], [1, 0]);
+
+  // Pasado el fade la capa es invisible: se congela el render en vez de
+  // desmontarla, asi volver arriba no recrea el contexto WebGL.
+  const [starsPaused, setStarsPaused] = useState(false);
+  useMotionValueEvent(scrollYProgress, "change", (p) => {
+    setStarsPaused(p >= 0.85);
+  });
+
+  // Hueco en el centro: la estrella principal manda, el campo de fondo no se
+  // le apoya encima. Con blend screen la luz se suma aunque las estrellas
+  // esten debajo, asi que no alcanza con el orden del DOM — hay que recortar.
+  // El centroide de la luz del estallido cae en 53%/48% del encuadre, no en
+  // el centro exacto. El radio respira con haloPulse: el mismo latido del halo,
+  // sin sumar una onda nueva, asi el vacio se expande cuando la luz brilla —
+  // literalmente la luz empujando el espacio. Bajo prefers-reduced-motion
+  // haloPulse ya es constante, asi que el hueco queda quieto solo.
+  const starsVoid = useTransform(haloPulse, (b) => 52 + 10 * clamp01(b));
+  const starsMask = useMotionTemplate`radial-gradient(circle ${starsVoid}vmin at 53% 48%, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.55) 60%, #000 100%)`;
 
   // ---- video A: estallido -> estrellas dispersas -> hero_2 ----
   const videoAOpacity = useTransform(
@@ -226,6 +257,39 @@ export default function VibraHero() {
 
   return (
     <>
+      {/* ---- campo de estrellas: primera capa del stack ----
+           mismo z-index que el resto de las capas del hero; va primera en el
+           DOM, asi el estallido y los videos pintan encima. Blend screen
+           sobre el navy del body, igual que las demas. La mascara le abre el
+           hueco donde vive la estrella principal. */}
+      <motion.div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          mixBlendMode: "screen",
+          opacity: starsOpacity,
+          maskImage: starsMask,
+          WebkitMaskImage: starsMask,
+        }}
+      >
+        <Galaxy
+          mouseInteraction={false}
+          mouseRepulsion={false}
+          disableAnimation={!!reduce}
+          paused={starsPaused}
+          density={0.9}
+          glowIntensity={0.25}
+          twinkleIntensity={0.35}
+          saturation={0}
+          starSpeed={0.3}
+          speed={0.8}
+          rotationSpeed={0.03}
+        />
+      </motion.div>
+
       {/* ---- hero_1: estallido ---- */}
       <MotionImage
         aria-hidden

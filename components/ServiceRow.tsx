@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Button from "./Button";
 import AgentsFanMockup, {
@@ -52,6 +53,58 @@ export interface ServiceRowProps {
   ctaLabel?: string;
 }
 
+/**
+ * Reproduce el video solo mientras esta en pantalla.
+ *
+ * Con `autoPlay loop` a secas los mockups decodifican siempre, estes en el
+ * hero o en el FAQ: son varios videos a la vez, cada uno componiendo ademas
+ * con mix-blend-mode en cada frame. Eso era lo que trababa el scroll en
+ * Servicios. El rootMargin arranca la reproduccion un poco antes de que
+ * entren, asi nunca se ve el primer frame congelado.
+ */
+function useVideoInView() {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          // muted + playsInline: la politica de autoplay lo permite. Igual
+          // puede rechazar (p. ej. ahorro de energia); no es critico.
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    io.observe(video);
+    return () => io.disconnect();
+  }, []);
+
+  return ref;
+}
+
+// Los tres mockups de video comparten la misma config: sin sonido ni
+// controles, en loop, y con la reproduccion atada al viewport.
+function MockupVideo({ src }: { src: string }) {
+  const ref = useVideoInView();
+  return (
+    <video
+      ref={ref}
+      src={src}
+      loop
+      muted
+      playsInline
+      preload="metadata"
+      aria-hidden
+    />
+  );
+}
+
 // ---- Frames de mockup en CSS puro ----
 // El área .mockup-phone-display / .mockup-screen es donde va la captura real.
 function PhoneFrame({ videoSrc }: { videoSrc?: string }) {
@@ -63,14 +116,7 @@ function PhoneFrame({ videoSrc }: { videoSrc?: string }) {
           // Demo viva: se reproduce sola, en loop, sin sonido ni controles.
           // El recorte a los bordes redondeados y el object-position (ajuste
           // por la dynamic island) se manejan en globals.css.
-          <video
-            src={videoSrc}
-            autoPlay
-            loop
-            muted
-            playsInline
-            aria-hidden
-          />
+          <MockupVideo src={videoSrc} />
         ) : (
           /* Pegá acá la captura vertical (celular): <img> o <Image> */
           <span className="mockup-placeholder">[imagen aquí]</span>
@@ -88,7 +134,7 @@ function PhoneRenderMockup({ videoSrc }: { videoSrc?: string }) {
   return (
     <div className="mockup-phone-render">
       {videoSrc ? (
-        <video src={videoSrc} autoPlay loop muted playsInline aria-hidden />
+        <MockupVideo src={videoSrc} />
       ) : (
         <span className="mockup-placeholder">[video aquí]</span>
       )}
@@ -104,7 +150,7 @@ function DesktopRenderMockup({ videoSrc }: { videoSrc?: string }) {
   return (
     <div className="mockup-desktop-render">
       {videoSrc ? (
-        <video src={videoSrc} autoPlay loop muted playsInline aria-hidden />
+        <MockupVideo src={videoSrc} />
       ) : (
         <span className="mockup-placeholder">[video aquí]</span>
       )}

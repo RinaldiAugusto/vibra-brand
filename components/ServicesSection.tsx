@@ -11,8 +11,7 @@ const CTA_HREF = "#contacto-final";
 
 // ---- Datos de las filas de servicio ----
 // El lado del mockup alterna solo: filas pares (index 0, 2, 4) llevan reverse
-// (mockup a la izquierda). El CRM de Sistema Total necesita quedar a la
-// izquierda: su celular asoma hacia ese lado y así no choca con la card.
+// (mockup a la izquierda).
 const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
   {
     // FILA 1 — Sistema Total (mockup izquierda / card derecha, DESTACADA)
@@ -26,7 +25,10 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Todo integrado: web, agentes y automatizaciones",
       "Es tuyo y escala con vos",
     ],
-    mockup: "crm",
+    // Render 3D de una MacBook con el dashboard del sistema (marco incluido
+    // en el video).
+    mockup: "desktop-render",
+    phoneVideoSrc: "/videos/sistema-total-render.mp4",
     highlighted: true,
     badge: "MÁS POPULAR",
   },
