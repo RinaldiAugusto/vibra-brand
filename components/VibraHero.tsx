@@ -389,48 +389,72 @@ export default function VibraHero() {
     // Scrub de video: solo durante los morphs (p < 0.66). Pasado ese punto
     // ambos videos tienen opacity 0, asi que seguir buscando frames era
     // trabajo puro desperdiciado en cada frame.
+    //
+    // HIBRIDO reproducir/seekear. El scrub por seeks serializados rendia
+    // pocos frames por segundo en iOS (cada seek espera su pipeline entero:
+    // el morph se veia como un slideshow congelado — verificado en grabacion
+    // de iPhone real). En cambio REPRODUCIR es el camino feliz del decoder
+    // por hardware. Asi que:
+    //  - hacia adelante con el target cerca: play() con playbackRate
+    //    acompasado a la distancia — el video persigue al scroll suave;
+    //  - hacia atras o salto grande: seek serializado (con escape de 300ms
+    //    para seeks que iOS nunca resuelve);
+    //  - target alcanzado: pause en el frame exacto.
+    // Los videos son all-intra: reproducir a 4x tambien es fluido (Safari
+    // pasa a "solo keyframes" en rates altos y aca TODO frame es keyframe).
     if (p < 0.66) {
       const scrub = (
         video: HTMLVideoElement | null,
         from: number,
         to: number
       ) => {
-        // duration es NaN hasta que carga la metadata. seeking es true
-        // mientras hay un seek en vuelo: en iOS, asignar currentTime encima de
-        // un seek sin terminar hace que Safari descarte el pedido, y como el
-        // rAF pisaba el valor 60 veces por segundo el video no llegaba nunca a
-        // resolver ninguno y se quedaba congelado en un frame. Serializando
-        // los seeks (uno nuevo recien cuando cerro el anterior) el scrub
-        // avanza de verdad.
-        //
-        // El guard lleva timeout: si un seek quedo colgado (iOS puede no
-        // resolver nunca uno pedido justo antes de que el video se oculte),
-        // sin escape el scrub quedaba bloqueado PARA SIEMPRE y la animacion
-        // no se podia volver a ver scrolleando en reversa. Pasados 300ms se
-        // pisa el seek colgado y se sigue.
-        if (!video || !video.duration) return;
+        if (!video || !video.duration) return; // metadata sin cargar
+        const target = ramp(p, from, to) * (video.duration - 0.05);
+        const diff = target - video.currentTime;
+
+        // Tolerancia asimetrica: la reproduccion puede pasarse ~1 frame del
+        // target antes de que el proximo tick la pause; sin el margen
+        // negativo eso disparaba un micro-seek hacia atras (jitter visible).
+        // Un retroceso real del scroll acumula diff negativo enseguida y si
+        // supera el margen, seekea.
+        if (diff <= 0.03 && diff > -0.15) {
+          if (!video.paused) video.pause();
+          return;
+        }
+
+        if (diff > 0 && diff < 1.2) {
+          // adelante y cerca: reproducir persiguiendo al scroll.
+          // rate = alcanzar el target en ~180ms, acotado a [0.5, 4].
+          const rate = Math.min(4, Math.max(0.5, diff / 0.18));
+          if (Math.abs(video.playbackRate - rate) > 0.15) {
+            video.playbackRate = rate;
+          }
+          if (video.paused) video.play().catch(() => {});
+          return;
+        }
+
+        // atras o salto grande: seek serializado. seeking es true mientras
+        // hay un seek en vuelo — pisarlo lo aborta en iOS. El timeout de
+        // 300ms es el escape para seeks que nunca resuelven (sin el, el
+        // scrub quedaba bloqueado para siempre al volver en reversa).
+        // currentTime y NO fastSeek: WebKit no repinta el frame de un video
+        // pausado despues de fastSeek.
+        if (!video.paused) video.pause();
         const now = performance.now();
         if (video.seeking && now - (seekStamps.current.get(video) ?? 0) < 300)
           return;
-        const target = ramp(p, from, to) * (video.duration - 0.05);
-        if (Math.abs(video.currentTime - target) > 0.02) {
-          // Salta directo al target en vez de perseguirlo: con los seeks
-          // serializados, un lerp dejaria el video varios frames atras del
-          // scroll. La latencia propia del seek ya absorbe los saltos bruscos.
-          //
-          // currentTime y NO fastSeek: WebKit no repinta el frame de un video
-          // pausado despues de fastSeek — el tiempo avanza pero la imagen
-          // queda congelada (verificado: currentTime reportaba el target y la
-          // pantalla seguia en blanco). Con los videos all-intra el seek por
-          // currentTime ya es barato: cada frame es un keyframe.
-          seekStamps.current.set(video, now);
-          video.currentTime = target;
-        }
+        seekStamps.current.set(video, now);
+        video.currentTime = target;
       };
       // el scrub de A termina antes del crossfade (0.38-0.42) para que ambos
       // videos muestren el frame de hero_2 durante la transicion
       scrub(videoARef.current, 0.12, 0.36);
       scrub(videoBRef.current, 0.44, 0.63);
+    } else {
+      // fuera del morph ningun video puede quedar reproduciendo solo
+      for (const v of [videoARef.current, videoBRef.current]) {
+        if (v && !v.paused) v.pause();
+      }
     }
 
     const f = ramp(p, 0.66, 0.8);
@@ -563,7 +587,12 @@ export default function VibraHero() {
       />
 
       {/* ---- bloom de hero_1: halo difuminado que respira sobre la luz
-           de la estrella (blend screen: el negro no aporta nada) ---- */}
+           de la estrella (blend screen: el negro no aporta nada).
+           Dos gemelas por capa: la "live" usa filter: blur() del navegador
+           (solo landscape) y la "baked" un JPG con el desenfoque ya horneado
+           (solo portrait) — blur en vivo a pantalla completa saturaba el GPU
+           del telefono y el video del morph no llegaba a pintar frames.
+           Comparten los mismos motion values, asi pulsan identico. ---- */}
       <MotionImage
         aria-hidden
         src="/hero_1.png"
@@ -573,12 +602,24 @@ export default function VibraHero() {
         quality={45}
         sizes="55vw"
         loading="eager"
-        className="hero-media hero-media-glow"
+        className="hero-media hero-media-glow hero-glow-live"
         style={{
           ...fullscreenMedia,
           scale: bloomScale,
           opacity: bloomOpacity,
           filter: "blur(28px) saturate(1.4) brightness(0.6)",
+        }}
+      />
+      <motion.img
+        aria-hidden
+        src="/hero_1_bloom.jpg"
+        alt=""
+        loading="eager"
+        className="hero-media hero-media-glow hero-glow-baked"
+        style={{
+          ...fullscreenMedia,
+          scale: bloomScale,
+          opacity: bloomOpacity,
         }}
       />
 
@@ -592,12 +633,24 @@ export default function VibraHero() {
         quality={35}
         sizes="40vw"
         loading="eager"
-        className="hero-media hero-media-glow"
+        className="hero-media hero-media-glow hero-glow-live"
         style={{
           ...fullscreenMedia,
           scale: haloScale,
           opacity: haloOpacity,
           filter: "blur(80px) saturate(1.6) brightness(0.68)",
+        }}
+      />
+      <motion.img
+        aria-hidden
+        src="/hero_1_halo.jpg"
+        alt=""
+        loading="eager"
+        className="hero-media hero-media-glow hero-glow-baked"
+        style={{
+          ...fullscreenMedia,
+          scale: haloScale,
+          opacity: haloOpacity,
         }}
       />
 

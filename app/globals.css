@@ -207,6 +207,16 @@ h6,
   position: relative;
 }
 
+/* Las capas de glow horneadas viven en el DOM siempre, pero solo pintan en
+   vertical (el bloque de arriba las prende). blur(28px)/blur(80px) en vivo
+   sobre capas de pantalla completa es carisimo en el GPU de un telefono:
+   durante el morph el compositor quedaba saturado y el video no llegaba a
+   presentar frames — la animacion se veia como un slideshow congelado. El
+   mismo desenfoque horneado en un JPG cuesta lo mismo que pintar una foto. */
+.hero-glow-baked {
+  display: none;
+}
+
 /* ---- Wordmark ---- */
 .wordmark {
   position: relative;
@@ -221,6 +231,16 @@ h6,
   width: clamp(14rem, 40vw, 30rem);
   height: auto;
   filter: drop-shadow(0 2px 40px rgba(var(--shadow-rgb), 0.55));
+}
+
+/* En vertical el wordmark cae sobre el nucleo mas brillante de la estrella
+   y el drop-shadow de 40px se lee como una caja oscura sucia alrededor del
+   logo (el PNG es transparente: el "cuadro" era la sombra). En desktop el
+   fondo es mas oscuro y la sombra aporta profundidad; aca va limpio. */
+@media (max-aspect-ratio: 1 / 1) {
+  .wordmark-img {
+    filter: none;
+  }
 }
 
 .tagline {
@@ -657,6 +677,15 @@ h6,
       #000 70%,
       transparent 100%
     );
+  }
+
+  /* En vertical las capas de glow con filter: blur() EN VIVO se apagan y
+     entran sus gemelas con el blur ya horneado en el asset (ver abajo). */
+  .hero-glow-live {
+    display: none;
+  }
+  .hero-glow-baked {
+    display: block;
   }
 }
 
