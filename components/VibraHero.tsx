@@ -135,6 +135,45 @@ export default function VibraHero() {
     };
   }, []);
 
+  // ---- Arranque del decoder de video ----
+  // iOS Safari no pinta ni un frame de un <video> que nunca se reprodujo:
+  // preload="auto" le baja los bytes, pero hasta que no hubo un play() el
+  // elemento queda en negro y los seeks del scrub no rinden imagen. Un play()
+  // mudo seguido de pause() alcanza para que decodifique y a partir de ahi el
+  // scrub funciona. muted + playsInline habilita el play sin gesto del
+  // usuario; si aun asi lo bloquea (modo de bajo consumo, ahorro de datos),
+  // se reintenta con el primer toque.
+  useEffect(() => {
+    const videos = [videoARef.current, videoBRef.current];
+    let primed = false;
+
+    const prime = () => {
+      if (primed) return;
+      primed = true;
+      Promise.all(
+        videos.map((v) => {
+          if (!v) return undefined;
+          const started = v.play();
+          if (started && typeof started.then === "function") {
+            return started.then(() => v.pause());
+          }
+          v.pause();
+          return undefined;
+        })
+      ).catch(() => {
+        primed = false; // autoplay bloqueado: que lo reintente el primer toque
+      });
+    };
+
+    prime();
+    window.addEventListener("touchstart", prime, { passive: true });
+    window.addEventListener("pointerdown", prime);
+    return () => {
+      window.removeEventListener("touchstart", prime);
+      window.removeEventListener("pointerdown", prime);
+    };
+  }, []);
+
   // titilacion de hero_1: parpadeo organico — tres ondas superpuestas de
   // frecuencias distintas para que nunca se sienta mecanico
   const time = useTime();
@@ -258,11 +297,20 @@ export default function VibraHero() {
         from: number,
         to: number
       ) => {
-        if (!video || !video.duration) return;
+        // duration es NaN hasta que carga la metadata. seeking es true
+        // mientras hay un seek en vuelo: en iOS, asignar currentTime encima de
+        // un seek sin terminar hace que Safari descarte el pedido, y como el
+        // rAF pisaba el valor 60 veces por segundo el video no llegaba nunca a
+        // resolver ninguno y se quedaba congelado en un frame. Serializando
+        // los seeks (uno nuevo recien cuando cerro el anterior) el scrub
+        // avanza de verdad.
+        if (!video || !video.duration || video.seeking) return;
         const target = ramp(p, from, to) * (video.duration - 0.05);
         if (Math.abs(video.currentTime - target) > 0.02) {
-          // persigue el target para absorber saltos bruscos del scroll
-          video.currentTime += (target - video.currentTime) * 0.45;
+          // salta directo al target en vez de perseguirlo: con los seeks
+          // serializados, un lerp dejaria el video varios frames atras del
+          // scroll. La latencia propia del seek ya absorbe los saltos bruscos.
+          video.currentTime = target;
         }
       };
       // el scrub de A termina antes del crossfade (0.38-0.42) para que ambos
@@ -341,6 +389,21 @@ export default function VibraHero() {
         }}
       >
         <Galaxy
+          // Canvas opaco, no transparente. El modo transparente emite
+          // vec4(col / lum, lum): color normalizado por su propia luminancia,
+          // y deja que el compositor lo vuelva a multiplicar por el alfa. Con
+          // eso el 63% del canvas queda guardado como RGB casi a fondo (>200)
+          // detras de un alfa de 0-2/255 — invisible solo mientras el
+          // compositor respete ese alfa con precision. Safari en iOS no lo
+          // hace sobre un canvas WebGL con mix-blend-mode, pinta el color
+          // guardado a fondo y el dither del shader sale como ruido de sal y
+          // pimienta tapando todo el hero.
+          //
+          // Opaco no depende de nada de eso: el shader emite vec4(col, 1.0) y
+          // el mix-blend-mode: screen del wrapper hace el trabajo aditivo.
+          // screen(fondo, 0) = fondo, asi que el negro del canvas desaparece
+          // igual que antes, sin alfa de por medio.
+          transparent={false}
           mouseInteraction={false}
           mouseRepulsion={false}
           disableAnimation={!!reduce}
