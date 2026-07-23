@@ -1,23 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  fadeItem,
-  staggerContainer,
-  viewportOnce,
-  HOVER_SPRING,
-} from "./motion";
 
-// ---- ESQUELETO ----
-// "Sobre Nosotros": historia breve de la agencia + equipo.
-// Reemplazar el texto de historia y los miembros del equipo por el copy real.
-// Para las fotos: reemplazar el avatar placeholder por <Image> cuando estén.
-const team = [
-  { name: "[Nombre 1]", role: "[Rol 1]" },
-  { name: "[Nombre 2]", role: "[Rol 2]" },
-  { name: "[Nombre 3]", role: "[Rol 3]" },
-];
-
+// "Sobre Nosotros": historia breve de la agencia.
+// Las tarjetas de equipo se sacaron a proposito (no hay fotos ni roles
+// definidos todavia); si vuelven, el CSS de .team-grid / .team-card sigue en
+// globals.css listo para usarse.
 export default function SobreNosotrosSection() {
   return (
     <motion.section
@@ -29,40 +17,30 @@ export default function SobreNosotrosSection() {
       id="sobre-nosotros"
     >
       <div style={{ textAlign: "center", marginBottom: "4rem" }}>
-        <p className="eyebrow">[EYEBROW — ej. Sobre Nosotros]</p>
-        <h2 className="font-heading">[TÍTULO DE LA SECCIÓN — Quiénes somos]</h2>
+        <p className="eyebrow">
+          <span className="marker-underline">Sobre Nosotros</span>
+        </p>
+        <h2 className="font-heading">Obsesionados con que funcione</h2>
       </div>
 
       {/* Historia breve */}
       <div className="about-story">
-        <p>[Párrafo 1 — historia de la agencia, placeholder]</p>
-        <p>[Párrafo 2 — misión / enfoque, placeholder]</p>
+        <p>
+          Vibra nació de una idea simple: la mayoría de los negocios no necesita
+          más software, necesita que el software que ya tiene deje de darles
+          trabajo. Empezamos automatizando tareas sueltas para PyMEs argentinas
+          y terminamos construyendo sistemas completos.
+        </p>
+        <p>
+          No vendemos IA como si fuera magia. Construimos cosas que andan en
+          producción todos los días, con clientes reales del otro lado — de esas
+          que se rompen si están mal hechas y se notan cuando están bien.
+        </p>
+        <p>
+          Por eso medimos todo con la misma vara: si no te devuelve tiempo, no lo
+          hacemos.
+        </p>
       </div>
-
-      {/* Equipo */}
-      <motion.div
-        className="team-grid"
-        variants={staggerContainer}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewportOnce}
-      >
-        {team.map((member) => (
-          <motion.div
-            key={member.name}
-            variants={fadeItem}
-            whileHover={{ y: -6 }}
-            transition={HOVER_SPRING}
-            className="team-card"
-          >
-            <div className="team-avatar" aria-hidden>
-              {/* Reemplazar por <Image> cuando haya foto */}
-            </div>
-            <h3 className="team-name font-heading">{member.name}</h3>
-            <p className="team-role">{member.role}</p>
-          </motion.div>
-        ))}
-      </motion.div>
     </motion.section>
   );
 }

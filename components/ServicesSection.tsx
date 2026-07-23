@@ -57,7 +57,7 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
     bullets: [
       "Nunca pierdas un cliente por no contestar a tiempo",
       "Atiende a 100 personas a la vez, sin esperas",
-      "Se conecta a tu agenda y a tus herramientas",
+      "Trabaja sobre tu agenda y tu CRM, todo dentro del sistema",
     ],
     // Render 3D de un iPhone con el chat de WhatsApp (marco incluido en el video).
     mockup: "phone-render",
@@ -73,7 +73,7 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
     bullets: [
       "Recuperá las horas que tu equipo pierde en lo manual",
       "Cero errores de carga: la info fluye sola",
-      "Conecta lo que ya usás (planillas, CRM, mail)",
+      "Todo ocurre dentro de tu sistema, sin apps sueltas",
     ],
     // Render 3D de una MacBook con 2 escenas (flujo + dashboard) en loop
     // (marco incluido en el video).

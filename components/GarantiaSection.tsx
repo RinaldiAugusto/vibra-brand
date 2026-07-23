@@ -3,9 +3,9 @@
 import { motion } from "framer-motion";
 import { HOVER_SPRING, POP_SPRING } from "./motion";
 
-// ---- ESQUELETO ----
 // "Garantía": reducción de riesgo. Texto + badge/ícono.
-// Reemplazar el título, el texto y (opcional) el ícono del badge por el real.
+// La promesa es diagnostico y propuesta sin costo — no hay devolucion de
+// dinero ni pago por etapas; no prometer eso en el copy.
 export default function GarantiaSection() {
   return (
     <section className="section" id="garantia">
@@ -41,13 +41,18 @@ export default function GarantiaSection() {
           </svg>
         </motion.div>
 
-        <p className="eyebrow">[EYEBROW — ej. Sin riesgo]</p>
+        <p className="eyebrow">
+          <span className="marker-underline">Sin riesgo</span>
+        </p>
+        {/* Titulo corto a proposito: .guarantee-title es un h2 de hasta 3.25rem
+            dentro de un card de 46rem, arriba de ~40 caracteres se va a 4 lineas. */}
         <h2 className="font-heading guarantee-title">
-          [TÍTULO DE LA GARANTÍA — placeholder]
+          Primero el plan. Después decidís.
         </h2>
         <p className="guarantee-text">
-          [Texto placeholder — describir la garantía y cómo reduce el riesgo del
-          cliente. Completar después.]
+          La llamada de diagnóstico y la propuesta no te cuestan nada. Salís con
+          un plan concreto: qué se automatiza, en cuánto tiempo y a qué precio.
+          Si decidís no avanzar, te quedás igual con el diagnóstico.
         </p>
       </motion.div>
     </section>

@@ -4,25 +4,36 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
 
-// ---- ESQUELETO ----
 // FAQ en formato acordeón funcional (abrir/cerrar con estado).
-// Reemplazar cada { question, answer } por el copy real.
+// Las preguntas se usan como key del map: tienen que ser únicas entre sí.
+// Los precios no van en la página a propósito — se dan en la llamada.
 const faqs = [
   {
-    question: "[Pregunta 1 — placeholder]",
-    answer: "[Respuesta 1 placeholder — completar después]",
+    // Dos semanas: mismo plazo que el paso 03 de ProcesoSection.tsx. Si cambia
+    // uno, cambiar el otro.
+    question: "¿Cuánto tarda en estar funcionando?",
+    answer:
+      "Dos semanas. Una vez que entendimos tu negocio y definimos el alcance, construimos tu sistema y te lo entregamos terminado, listo para implementar.",
   },
   {
-    question: "[Pregunta 2 — placeholder]",
-    answer: "[Respuesta 2 placeholder — completar después]",
+    question: "¿Cuánto cuesta?",
+    answer:
+      "No vendemos paquetes cerrados: cada sistema se cotiza según lo que tu negocio necesita. En la llamada de diagnóstico te damos un rango concreto, y la propuesta llega con precio cerrado antes de que te comprometas a nada.",
   },
   {
-    question: "[Pregunta 3 — placeholder]",
-    answer: "[Respuesta 3 placeholder — completar después]",
+    question: "¿Necesito saber de tecnología?",
+    answer:
+      "No. Vos ponés el conocimiento de tu negocio, nosotros la parte técnica. Te entregamos todo andando y le enseñamos a tu equipo a usarlo. Si algo falla o querés cambiar algo, nos escribís y lo resolvemos nosotros.",
   },
   {
-    question: "[Pregunta 4 — placeholder]",
-    answer: "[Respuesta 4 placeholder — completar después]",
+    question: "¿Mis clientes se van a dar cuenta de que hablan con una IA?",
+    answer:
+      "El agente habla natural y con el tono de tu negocio, y conoce tus precios, tu agenda y tus servicios. Cuando una consulta se sale de lo que puede resolver, la deriva a una persona de tu equipo en vez de improvisar.",
+  },
+  {
+    question: "¿Esto se suma a las herramientas que ya uso?",
+    answer:
+      "No es una app más para agregar a la pila. Te entregamos la solución completa —el CRM, los agentes y las automatizaciones— en un solo sistema hecho para tu negocio. Toda tu operación en un lugar, en vez de repartida entre planillas, apps y casillas sueltas.",
   },
 ];
 
@@ -41,10 +52,12 @@ export default function FaqSection() {
         viewport={viewportOnce}
         style={{ textAlign: "center", marginBottom: "4rem" }}
       >
-        <p className="eyebrow">[EYEBROW — ej. Preguntas Frecuentes]</p>
-        <h2 className="font-heading">[TÍTULO DE LA SECCIÓN — FAQ]</h2>
+        <p className="eyebrow">
+          <span className="marker-underline">Preguntas Frecuentes</span>
+        </p>
+        <h2 className="font-heading">Lo que nos preguntan antes de empezar</h2>
         <p style={{ margin: "0 auto" }}>
-          [Subtítulo placeholder — completar después]
+          Si tenés una que no está acá, escribinos — te contestamos en el día.
         </p>
       </motion.div>
 

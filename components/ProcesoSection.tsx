@@ -3,26 +3,32 @@
 import { motion } from "framer-motion";
 import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
 
-// ---- ESQUELETO ----
 // Sección "Cómo trabajamos": pasos del servicio en orden.
-// Reemplazar los pasos placeholder por el copy real (título + descripción).
 // El orden del array define el orden visual y la numeración.
+// Cada paso engancha con algo que ya vive en la página: el 01 es la llamada de
+// 30 min del CTA de Cal.com, el 02 es la garantía, el 04 es Vibra Care.
 const steps = [
   {
-    title: "[Paso 1 — Diagnóstico]",
-    description: "[Texto placeholder — describir qué pasa en esta etapa]",
+    title: "Diagnóstico",
+    description:
+      "En una llamada entendemos tu negocio: dónde están los cuellos de botella y qué se puede optimizar. Salís con un diagnóstico claro, avancemos o no.",
   },
   {
-    title: "[Paso 2 — Propuesta]",
-    description: "[Texto placeholder — describir qué pasa en esta etapa]",
+    title: "Definición",
+    description:
+      "Definimos tu agente de mensajes y/o llamadas: qué hace, hasta dónde llega y qué queda afuera. Todo a medida, ajustado a cómo trabaja tu negocio.",
   },
   {
-    title: "[Paso 3 — Desarrollo]",
-    description: "[Texto placeholder — describir qué pasa en esta etapa]",
+    // El plazo de dos semanas tiene que coincidir con la respuesta de
+    // "¿Cuánto tarda en estar funcionando?" en FaqSection.tsx.
+    title: "Construcción",
+    description:
+      "Con tu negocio entendido y el alcance definido, en dos semanas tenemos el producto terminado y listo para implementar.",
   },
   {
-    title: "[Paso 4 — Entrega y soporte]",
-    description: "[Texto placeholder — describir qué pasa en esta etapa]",
+    title: "Capacitación y seguimiento",
+    description:
+      "Capacitamos a tu equipo y no te soltamos: con Vibra Care seguimos con monitoreo, ajustes y mejoras mes a mes.",
   },
 ];
 
@@ -36,10 +42,13 @@ export default function ProcesoSection() {
         viewport={viewportOnce}
         style={{ textAlign: "center", marginBottom: "4rem" }}
       >
-        <p className="eyebrow">[EYEBROW — ej. Nuestro Proceso]</p>
-        <h2 className="font-heading">[TÍTULO DE LA SECCIÓN — Cómo trabajamos]</h2>
+        <p className="eyebrow">
+          <span className="marker-underline">Nuestro Proceso</span>
+        </p>
+        <h2 className="font-heading">De la primera charla a tu sistema andando</h2>
         <p style={{ margin: "0 auto" }}>
-          [Subtítulo placeholder — completar después]
+          Cuatro etapas claras. En cada una sabés qué se está haciendo y cuándo
+          lo vas a ver funcionando.
         </p>
       </motion.div>
 

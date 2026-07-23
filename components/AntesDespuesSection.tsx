@@ -9,19 +9,19 @@ import {
   HOVER_SPRING,
 } from "./motion";
 
-// ---- ESQUELETO ----
 // "Antes / Después": comparación visual del dolor actual vs. la solución con IA.
-// Dos bloques comparativos. Reemplazar los ítems de cada columna por el copy real.
+// Los dos arrays van apareados: cada item de `despues` responde al de `antes`
+// en la misma posicion. Si se agrega uno, agregar su par del otro lado.
 const antes = [
-  "[Dolor 1 — placeholder]",
-  "[Dolor 2 — placeholder]",
-  "[Dolor 3 — placeholder]",
+  "Mensajes que entran a la noche y contestás al otro día — si te acordás",
+  "Tu equipo pierde horas cargando datos y pasando info de un lado a otro",
+  "Si vos parás, el negocio para: todo pasa por vos",
 ];
 
 const despues = [
-  "[Solución 1 — placeholder]",
-  "[Solución 2 — placeholder]",
-  "[Solución 3 — placeholder]",
+  "Cada mensaje y cada llamada respondida al instante, a cualquier hora",
+  "Las tareas repetitivas se hacen solas y sin errores de carga",
+  "El sistema sigue atendiendo y vendiendo aunque te tomes el día",
 ];
 
 export default function AntesDespuesSection() {
@@ -34,10 +34,12 @@ export default function AntesDespuesSection() {
         viewport={viewportOnce}
         style={{ textAlign: "center", marginBottom: "4rem" }}
       >
-        <p className="eyebrow">[EYEBROW — ej. El cambio]</p>
-        <h2 className="font-heading">[TÍTULO DE LA SECCIÓN — Antes vs. Después]</h2>
+        <p className="eyebrow">
+          <span className="marker-underline">El cambio</span>
+        </p>
+        <h2 className="font-heading">Cómo cambia tu semana</h2>
         <p style={{ margin: "0 auto" }}>
-          [Subtítulo placeholder — completar después]
+          El mismo negocio, con y sin un sistema que trabaje por vos.
         </p>
       </motion.div>
 
@@ -51,7 +53,7 @@ export default function AntesDespuesSection() {
           whileHover={{ y: -6, transition: HOVER_SPRING }}
           className="compare-card compare-card-before"
         >
-          <h3 className="compare-heading font-heading">[Antes — Sin IA]</h3>
+          <h3 className="compare-heading font-heading">Hoy, sin sistema</h3>
           <motion.ul
             className="compare-list"
             variants={staggerContainer}
@@ -79,7 +81,7 @@ export default function AntesDespuesSection() {
           whileHover={{ y: -6, transition: HOVER_SPRING }}
           className="compare-card compare-card-after"
         >
-          <h3 className="compare-heading font-heading">[Después — Con Vibra IA]</h3>
+          <h3 className="compare-heading font-heading">Con Vibra</h3>
           <motion.ul
             className="compare-list"
             variants={staggerContainer}
