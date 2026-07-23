@@ -349,32 +349,42 @@ export default function VibraHero() {
   useAnimationFrame((_, delta) => {
     const p = scrollYProgress.get();
 
-    // Reversa: al volver a entrar al morph desde abajo (p cruza 0.66 hacia
-    // arriba en la pagina), el navegador descarto la imagen de los videos
-    // mientras estuvieron en opacity 0. Dos mecanismos la reviven:
-    //  1. play() mudo + pause(): despierta el decoder si iOS lo solto.
-    //  2. Un nudge de seek al MISMO frame: si el target del scrub coincide
-    //     con el currentTime que el video ya tenia (pasa siempre que se
-    //     vuelve al mismo punto), el umbral de 0.02 no dispara ningun seek y
-    //     nada redibuja la imagen — la pantalla quedaba en blanco aunque
-    //     currentTime fuera correcto (verificado en WebKit). El seek de
-    //     -0.0001s cae en el mismo frame pero fuerza el redecode y repintado.
+    // Re-despertar los videos cada vez que ENTRAN a su ventana de
+    // visibilidad, vengan de donde vengan. Mientras un video esta en
+    // opacity 0, el navegador descarta su imagen — y iOS ademas suelta el
+    // decoder: los seeks "resuelven" pero no pintan nada. Se veia en dos
+    // recorridos:
+    //  - reversa: bajar del todo y volver a subir al morph;
+    //  - segunda pasada: bajar, subir hasta arriba y volver a bajar — el
+    //    morph entero quedaba invisible (solo el glow de fondo), verificado
+    //    en una grabacion de pantalla de iPhone real.
+    // Dos mecanismos lo reviven al cruzar hacia adentro de la ventana:
+    //  1. play() mudo + pause(): re-engancha el decoder.
+    //  2. Un nudge de seek al MISMO frame (-0.0001s): si el target del
+    //     scrub coincide con el currentTime que ya tenia, el umbral de 0.02
+    //     no dispara ningun seek y nada redibuja la imagen (verificado en
+    //     WebKit); el nudge fuerza el redecode y repintado.
+    // Las ventanas van un poco mas anchas que las de opacidad (0.10-0.42 y
+    // 0.38-0.66) para que el despertar llegue ANTES del primer frame
+    // visible.
     const prevP = prevPRef.current;
     prevPRef.current = p;
-    if (prevP >= 0.66 && p < 0.66) {
-      for (const v of [videoARef.current, videoBRef.current]) {
-        if (!v) continue;
-        const started = v.play();
-        if (started && typeof started.then === "function") {
-          started
-            .then(() => {
-              v.pause();
-              v.currentTime = Math.max(0, v.currentTime - 0.0001);
-            })
-            .catch(() => {});
-        }
+    const wake = (video: HTMLVideoElement | null, lo: number, hi: number) => {
+      const inside = p >= lo && p < hi;
+      const wasInside = prevP >= lo && prevP < hi;
+      if (!inside || wasInside || !video) return;
+      const started = video.play();
+      if (started && typeof started.then === "function") {
+        started
+          .then(() => {
+            video.pause();
+            video.currentTime = Math.max(0, video.currentTime - 0.0001);
+          })
+          .catch(() => {});
       }
-    }
+    };
+    wake(videoARef.current, 0.06, 0.44);
+    wake(videoBRef.current, 0.34, 0.68);
 
     // Scrub de video: solo durante los morphs (p < 0.66). Pasado ese punto
     // ambos videos tienen opacity 0, asi que seguir buscando frames era
