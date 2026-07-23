@@ -174,6 +174,39 @@ export default function VibraHero() {
     };
   }, []);
 
+  // ---- Viewport vertical (celular) ----
+  // Como motion value y no como estado de React: los transforms de framer
+  // capturan su funcion una sola vez, asi que un boolean de useState no los
+  // haria recalcular al montar ni al rotar. Suscribiendolos a este MV, el
+  // cambio de orientacion propaga solo.
+  const portraitMV = useMotionValue(0);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-aspect-ratio: 1 / 1)");
+    const update = () => portraitMV.set(mq.matches ? 1 : 0);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [portraitMV]);
+
+  // Zoom de entrada en vertical. El arte del hero es 16:9: encuadrado a la
+  // franja (--hero-art-w) el morph empalma perfecto, pero la primera
+  // impresion al abrir la pagina quedaba chica — una banda flotando en el
+  // medio, nada que ver con el desktop donde la estrella llena la pantalla.
+  // Aca hero_1 arranca 1.55x mas grande (la estrella llena el alto del
+  // telefono) y se repliega a la escala de la franja durante [0, 0.1] con
+  // easeOut, justo ANTES de que el video A empiece a aparecer (0.10-0.15):
+  // cuando hay crossfade las escalas ya coinciden y el morph no salta.
+  // En landscape es 1 constante: desktop intacto.
+  const introZoom = useTransform(
+    [scrollYProgress, portraitMV],
+    ([p, ptr]: number[]) => {
+      if (!ptr) return 1;
+      const t = clamp01(p / 0.1);
+      const e = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      return 1.55 + (1 - 1.55) * e;
+    }
+  );
+
   // titilacion de hero_1: parpadeo organico — tres ondas superpuestas de
   // frecuencias distintas para que nunca se sienta mecanico
   const time = useTime();
@@ -188,7 +221,13 @@ export default function VibraHero() {
 
   // ---- hero_1: estallido titilando ----
   const burstOpacity = useTransform(scrollYProgress, [0, 0.1, 0.15], [1, 1, 0]);
-  const burstScale = useTransform(scrollYProgress, [0, 0.15], [1, 1.05]);
+  const burstScaleBase = useTransform(scrollYProgress, [0, 0.15], [1, 1.05]);
+  // el zoom de entrada (vertical) multiplica a la respiracion de siempre;
+  // en landscape introZoom es 1 y esto es identico a antes
+  const burstScale = useTransform(
+    [burstScaleBase, introZoom],
+    ([s, z]: number[]) => s * z
+  );
 
   // bloom: la misma imagen difuminada como halo de luz que respira; con
   // blend screen sobre negro solo las zonas brillantes (la estrella y sus
@@ -201,12 +240,30 @@ export default function VibraHero() {
     const s2 = Math.sin((t / 900) * Math.PI * 2 + 0.7);
     return 0.55 + 0.35 * s1 + 0.2 * s2;
   });
-  const bloomOpacity = useTransform(
-    [burstOpacity, bloomPulse],
-    ([a, b]: number[]) => a * clamp01(b)
+  // Cola de luz ambiente, solo en vertical. En desktop los videos del morph
+  // cubren la pantalla y el glow puede morir con hero_1; en el celular el
+  // arte es una franja y, si la luz se apaga en p=0.15, la franja queda
+  // flotando sobre negro plano el resto del morph — el "marco". La cola
+  // mantiene el resplandor difuminado de fondo durante los videos y lo apaga
+  // junto con el campo de estrellas, cuando arranca el vuelo del cluster.
+  const glowTail = useTransform(
+    [scrollYProgress, portraitMV],
+    ([p, ptr]: number[]) => {
+      if (!ptr) return 0;
+      if (p < 0.15) return 0.6;
+      if (p < 0.55) return 0.6 - 0.15 * ramp(p, 0.15, 0.55);
+      return 0.45 * (1 - ramp(p, 0.55, 0.72));
+    }
   );
+  const bloomOpacity = useTransform(
+    [burstOpacity, glowTail, bloomPulse],
+    ([a, t, b]: number[]) => Math.max(a, t) * clamp01(b)
+  );
+  // sobre burstScaleBase, no burstScale: el glow ya tiene su propio encuadre
+  // grande (--hero-glow-w) y sumarle el zoom de entrada lo convertia en un
+  // lavado blanco que se comia el navy del fondo
   const bloomScale = useTransform(
-    [burstScale, bloomPulse],
+    [burstScaleBase, bloomPulse],
     ([s, b]: number[]) => s * (1 + 0.05 * clamp01(b))
   );
 
@@ -219,11 +276,11 @@ export default function VibraHero() {
     return 0.45 + 0.3 * s1 + 0.18 * s2;
   });
   const haloOpacity = useTransform(
-    [burstOpacity, haloPulse],
-    ([a, b]: number[]) => a * clamp01(b)
+    [burstOpacity, glowTail, haloPulse],
+    ([a, t, b]: number[]) => Math.max(a, t) * clamp01(b)
   );
   const haloScale = useTransform(
-    [burstScale, haloPulse],
+    [burstScaleBase, haloPulse],
     ([s, b]: number[]) => s * (1 + 0.12 * clamp01(b))
   );
 
@@ -307,10 +364,21 @@ export default function VibraHero() {
         if (!video || !video.duration || video.seeking) return;
         const target = ramp(p, from, to) * (video.duration - 0.05);
         if (Math.abs(video.currentTime - target) > 0.02) {
-          // salta directo al target en vez de perseguirlo: con los seeks
+          // Salta directo al target en vez de perseguirlo: con los seeks
           // serializados, un lerp dejaria el video varios frames atras del
           // scroll. La latencia propia del seek ya absorbe los saltos bruscos.
-          video.currentTime = target;
+          //
+          // fastSeek donde exista (Safari): currentTime pide precision
+          // sub-frame y Safari la paga cara — en scroll rapido los seeks se
+          // encolaban y el morph se congelaba hasta soltar. fastSeek va al
+          // sync frame mas cercano, y como los videos son all-intra (121
+          // keyframes de 121) "el mas cercano" es EXACTAMENTE el frame
+          // pedido: misma imagen, decode minimo.
+          const v = video as HTMLVideoElement & {
+            fastSeek?: (time: number) => void;
+          };
+          if (typeof v.fastSeek === "function") v.fastSeek(target);
+          else video.currentTime = target;
         }
       };
       // el scrub de A termina antes del crossfade (0.38-0.42) para que ambos
@@ -448,7 +516,7 @@ export default function VibraHero() {
         quality={45}
         sizes="55vw"
         loading="eager"
-        className="hero-media"
+        className="hero-media hero-media-glow"
         style={{
           ...fullscreenMedia,
           scale: bloomScale,
@@ -467,7 +535,7 @@ export default function VibraHero() {
         quality={35}
         sizes="40vw"
         loading="eager"
-        className="hero-media"
+        className="hero-media hero-media-glow"
         style={{
           ...fullscreenMedia,
           scale: haloScale,

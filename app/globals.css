@@ -63,6 +63,12 @@
   /* landscape: equivale exactamente al object-fit: cover de siempre */
   --hero-art-w: max(100vw, calc(100vh * var(--hero-aspect)));
   --hero-art-h: calc(var(--hero-art-w) / var(--hero-aspect));
+  /* Encuadre de las capas de LUZ (bloom y halo difuminados): siempre cover.
+     En landscape coincide con --hero-art-w; en vertical NO se achica a la
+     franja como el arte nitido, porque su trabajo es banar toda la pantalla
+     con el resplandor de la estrella (ver .hero-media-glow). */
+  --hero-glow-w: max(100vw, calc(100vh * var(--hero-aspect)));
+  --hero-glow-h: calc(var(--hero-glow-w) / var(--hero-aspect));
 }
 
 * {
@@ -582,6 +588,12 @@ h6,
        todo — y el cuerpo de la estrella se ve entero, que es justo lo que
        cover destruia. */
     --hero-art-w: calc(100vw * 1.8);
+    /* El glow desborda la franja para banar la pantalla, pero NO llega a
+       cover: cover en un telefono es un recorte al centro de la estrella
+       difuminada — puro blanco — y lavaba el navy entero. A 2.4x la luz llena
+       el centro y se apaga sola hacia arriba y abajo, como los rincones
+       oscuros del encuadre en desktop. */
+    --hero-glow-w: calc(100vw * 2.4);
   }
 
   /* Difuminado de los bordes horizontales de la franja.
@@ -607,6 +619,23 @@ h6,
        el degrade se azulejaba sobre ese desborde y salian bandas. */
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
+  }
+
+  /* Las capas de luz (bloom + halo, copias difuminadas de hero_1) NO se
+     achican a la franja ni llevan mascara: quedan a cover como en desktop.
+     Son la iluminacion ambiente de la escena — si se recortan, la franja del
+     arte flota sobre negro plano y se lee como un rectangulo pegado (el
+     "marco"). A pantalla completa, el resplandor de la estrella bana el
+     espacio arriba y abajo de la franja y los bordes difuminados del arte se
+     funden con esa luz en vez de cortarse contra el vacio. Al ser blur(28px)
+     y blur(80px) no tienen ningun borde que delate el encuadre 16:9. */
+  .hero-media-glow {
+    width: var(--hero-glow-w);
+    height: var(--hero-glow-h);
+    margin-left: calc(var(--hero-glow-w) / -2);
+    margin-top: calc(var(--hero-glow-h) / -2);
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
