@@ -342,8 +342,39 @@ export default function VibraHero() {
 
   // scrub de videos + giro continuo, todo en un solo rAF
   const clusterRotate = useMotionValue(0);
+  // timestamp del ultimo seek pedido por video: es el escape del guard de
+  // `seeking` (ver scrub)
+  const seekStamps = useRef(new WeakMap<HTMLVideoElement, number>());
+  const prevPRef = useRef(0);
   useAnimationFrame((_, delta) => {
     const p = scrollYProgress.get();
+
+    // Reversa: al volver a entrar al morph desde abajo (p cruza 0.66 hacia
+    // arriba en la pagina), el navegador descarto la imagen de los videos
+    // mientras estuvieron en opacity 0. Dos mecanismos la reviven:
+    //  1. play() mudo + pause(): despierta el decoder si iOS lo solto.
+    //  2. Un nudge de seek al MISMO frame: si el target del scrub coincide
+    //     con el currentTime que el video ya tenia (pasa siempre que se
+    //     vuelve al mismo punto), el umbral de 0.02 no dispara ningun seek y
+    //     nada redibuja la imagen — la pantalla quedaba en blanco aunque
+    //     currentTime fuera correcto (verificado en WebKit). El seek de
+    //     -0.0001s cae en el mismo frame pero fuerza el redecode y repintado.
+    const prevP = prevPRef.current;
+    prevPRef.current = p;
+    if (prevP >= 0.66 && p < 0.66) {
+      for (const v of [videoARef.current, videoBRef.current]) {
+        if (!v) continue;
+        const started = v.play();
+        if (started && typeof started.then === "function") {
+          started
+            .then(() => {
+              v.pause();
+              v.currentTime = Math.max(0, v.currentTime - 0.0001);
+            })
+            .catch(() => {});
+        }
+      }
+    }
 
     // Scrub de video: solo durante los morphs (p < 0.66). Pasado ese punto
     // ambos videos tienen opacity 0, asi que seguir buscando frames era
@@ -361,24 +392,29 @@ export default function VibraHero() {
         // resolver ninguno y se quedaba congelado en un frame. Serializando
         // los seeks (uno nuevo recien cuando cerro el anterior) el scrub
         // avanza de verdad.
-        if (!video || !video.duration || video.seeking) return;
+        //
+        // El guard lleva timeout: si un seek quedo colgado (iOS puede no
+        // resolver nunca uno pedido justo antes de que el video se oculte),
+        // sin escape el scrub quedaba bloqueado PARA SIEMPRE y la animacion
+        // no se podia volver a ver scrolleando en reversa. Pasados 300ms se
+        // pisa el seek colgado y se sigue.
+        if (!video || !video.duration) return;
+        const now = performance.now();
+        if (video.seeking && now - (seekStamps.current.get(video) ?? 0) < 300)
+          return;
         const target = ramp(p, from, to) * (video.duration - 0.05);
         if (Math.abs(video.currentTime - target) > 0.02) {
           // Salta directo al target en vez de perseguirlo: con los seeks
           // serializados, un lerp dejaria el video varios frames atras del
           // scroll. La latencia propia del seek ya absorbe los saltos bruscos.
           //
-          // fastSeek donde exista (Safari): currentTime pide precision
-          // sub-frame y Safari la paga cara — en scroll rapido los seeks se
-          // encolaban y el morph se congelaba hasta soltar. fastSeek va al
-          // sync frame mas cercano, y como los videos son all-intra (121
-          // keyframes de 121) "el mas cercano" es EXACTAMENTE el frame
-          // pedido: misma imagen, decode minimo.
-          const v = video as HTMLVideoElement & {
-            fastSeek?: (time: number) => void;
-          };
-          if (typeof v.fastSeek === "function") v.fastSeek(target);
-          else video.currentTime = target;
+          // currentTime y NO fastSeek: WebKit no repinta el frame de un video
+          // pausado despues de fastSeek — el tiempo avanza pero la imagen
+          // queda congelada (verificado: currentTime reportaba el target y la
+          // pantalla seguia en blanco). Con los videos all-intra el seek por
+          // currentTime ya es barato: cada frame es un keyframe.
+          seekStamps.current.set(video, now);
+          video.currentTime = target;
         }
       };
       // el scrub de A termina antes del crossfade (0.38-0.42) para que ambos
@@ -405,9 +441,16 @@ export default function VibraHero() {
       // +10% de sobredimension que ya tenia en desktop.
       const startScale =
         (artW.current * 1.1) / (CLUSTER_SIZE * CLUSTER_ASPECT);
+      // En vertical las capas .hero-media van corridas para centrar el
+      // nucleo de la estrella (margins -0.53/-0.48 en globals.css): el vuelo
+      // arranca desde ese mismo punto para empalmar con el frame final del
+      // video B sin saltar.
+      const portrait = portraitMV.get() === 1;
+      const bx = portrait ? -0.03 * artW.current : 0;
+      const by = portrait ? 0.02 * (artW.current / (16 / 9)) : 0;
       clusterScale.set(startScale + (1 - startScale) * shrinkEase(f));
-      clusterDX.set((w / 2 - dock.left) * (1 - flyEase(f)));
-      clusterDY.set((h / 2 - dock.top) * (1 - flyEase(f)));
+      clusterDX.set((w / 2 + bx - dock.left) * (1 - flyEase(f)));
+      clusterDY.set((h / 2 + by - dock.top) * (1 - flyEase(f)));
     }
 
     // Giro continuo del logo dockeado (4 s/vuelta) + whoosh en pleno vuelo.
@@ -494,7 +537,11 @@ export default function VibraHero() {
         width={4096}
         height={2305}
         quality={100}
-        sizes="100vw"
+        // En vertical el arte NO se renderiza a 100vw: la caja es 180vw
+        // (--hero-art-w) y el zoom de entrada la lleva a ~280vw. Con
+        // sizes="100vw" el navegador pedia una imagen 2.8x mas chica que lo
+        // que pintaba y la estrella salia borrosa en el celular.
+        sizes="(max-aspect-ratio: 1 / 1) 280vw, 100vw"
         priority
         className="hero-media"
         style={{
