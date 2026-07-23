@@ -69,6 +69,18 @@ export default function VibraHero() {
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
 
+  // Los videos NO se muestran: son la fuente de frames de dos <canvas>, que
+  // son las capas visibles del morph. Cuando un <video> se esta
+  // REPRODUCIENDO, iOS lo promueve a un plano de composicion de hardware que
+  // ignora mix-blend-mode, la mascara y hasta el orden de apilado: el
+  // rectangulo crudo del video aparecia con sus bandas negras (el "marco"
+  // arriba y abajo) y seguia pintando encima de la seccion siguiente
+  // (verificado en grabacion de iPhone real). Un canvas es una capa normal:
+  // blend, mascara y opacity se respetan siempre.
+  const canvasARef = useRef<HTMLCanvasElement>(null);
+  const canvasBRef = useRef<HTMLCanvasElement>(null);
+  const ctxRefs = useRef<(CanvasRenderingContext2D | null)[]>([null, null]);
+
   // Respeta prefers-reduced-motion: congela los bucles autoplay (titileo,
   // bloom/halo pulsante, giro continuo del logo). El morph sigue atado al
   // scroll (lo controla el usuario), pero sin animaciones que se muevan solas.
@@ -88,7 +100,7 @@ export default function VibraHero() {
 
   // Ancho al que se renderiza el arte del hero, en px. Lo define --hero-art-w
   // en globals.css (una sola medida para las seis capas, ver el bloque
-  // .hero-media). Se lee de la caja ya maquetada de un video en vez de
+  // .hero-media). Se lee de la caja ya maquetada del canvas B en vez de
   // reimplementar la formula aca: si el breakpoint cambia, esto la sigue sola.
   // offsetWidth y no getBoundingClientRect: da el ancho de layout, sin el
   // transform inline de framer-motion.
@@ -97,7 +109,7 @@ export default function VibraHero() {
   useEffect(() => {
     const measure = () => {
       artW.current =
-        videoBRef.current?.offsetWidth ||
+        canvasBRef.current?.offsetWidth ||
         Math.max(window.innerWidth, (window.innerHeight * 16) / 9);
 
       const header = document.querySelector<HTMLElement>(".header");
@@ -457,6 +469,26 @@ export default function VibraHero() {
       }
     }
 
+    // Copia el frame vigente de cada video a su canvas visible, solo
+    // mientras la capa esta en su ventana (fuera de ella opacity es 0 y
+    // dibujar seria trabajo desperdiciado). drawImage de un 720p por tick
+    // es barato: es un blit de GPU.
+    const draw = (
+      video: HTMLVideoElement | null,
+      canvas: HTMLCanvasElement | null,
+      slot: number
+    ) => {
+      if (!video || !canvas || video.readyState < 2) return;
+      let ctx = ctxRefs.current[slot];
+      if (!ctx) {
+        ctx = canvas.getContext("2d");
+        ctxRefs.current[slot] = ctx;
+      }
+      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    };
+    if (p >= 0.06 && p < 0.46) draw(videoARef.current, canvasARef.current, 0);
+    if (p >= 0.34 && p < 0.68) draw(videoBRef.current, canvasBRef.current, 1);
+
     const f = ramp(p, 0.66, 0.8);
 
     // Vuelo de hero_3: de pantalla completa al lado del boton. Se recalcula
@@ -654,26 +686,63 @@ export default function VibraHero() {
         }}
       />
 
-      {/* ---- video A: hero_1 se desarma en estrellas -> hero_2 ---- */}
-      <motion.video
+      {/* ---- videos del morph: fuentes de frames, NUNCA visibles ----
+           2x2px y opacity ~0 (no display:none: iOS no decodifica un video
+           display:none). Los canvas de abajo son las capas visibles; ver el
+           comentario de canvasARef por que. */}
+      <video
         aria-hidden
         ref={videoARef}
         src="/hero_morph_1.mp4"
         muted
         playsInline
         preload="auto"
-        className="hero-media"
-        style={{ ...fullscreenMedia, opacity: videoAOpacity }}
+        style={{
+          position: "fixed",
+          left: 0,
+          bottom: 0,
+          width: 2,
+          height: 2,
+          opacity: 0.01,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
       />
-
-      {/* ---- video B: hero_2 se reagrupa en el cluster (hero_3) ---- */}
-      <motion.video
+      <video
         aria-hidden
         ref={videoBRef}
         src="/hero_morph_2.mp4"
         muted
         playsInline
         preload="auto"
+        style={{
+          position: "fixed",
+          left: 0,
+          bottom: 0,
+          width: 2,
+          height: 2,
+          opacity: 0.01,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      {/* ---- canvas A: hero_1 se desarma en estrellas -> hero_2 ---- */}
+      <motion.canvas
+        aria-hidden
+        ref={canvasARef}
+        width={1280}
+        height={720}
+        className="hero-media"
+        style={{ ...fullscreenMedia, opacity: videoAOpacity }}
+      />
+
+      {/* ---- canvas B: hero_2 se reagrupa en el cluster (hero_3) ---- */}
+      <motion.canvas
+        aria-hidden
+        ref={canvasBRef}
+        width={1280}
+        height={720}
         className="hero-media"
         style={{ ...fullscreenMedia, opacity: videoBOpacity }}
       />
