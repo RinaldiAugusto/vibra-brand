@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useScroll,
@@ -77,6 +77,50 @@ export default function VibraHero() {
     target: ref,
     offset: ["start start", "end start"],
   });
+
+  // ---- Destino del logo dockeado ----
+  // Se mide del header real en vez de hardcodear coordenadas: el control que
+  // ocupa la derecha cambia con el breakpoint (hamburguesa en mobile, boton
+  // CTA desde 768px) y su alto/padding tambien, asi que cualquier constante
+  // queda desfasada al tocar el header.
+  const [dock, setDock] = useState({ left: 0, top: 47 });
+
+  useEffect(() => {
+    const measure = () => {
+      const header = document.querySelector<HTMLElement>(".header");
+      const toggle = document.querySelector<HTMLElement>(".nav-toggle");
+      const cta = document.querySelector<HTMLElement>(".nav-cta");
+      // offsetParent null => display:none (la hamburguesa desde 768px)
+      const onToggle = !!toggle && toggle.offsetParent !== null;
+      const anchor = onToggle ? toggle : cta;
+      if (!header || !anchor) return;
+
+      // Restar el rect del header cancela su transform de entrada (motion
+      // anima y: -100 -> 0): si midieramos en crudo durante esa animacion el
+      // destino saldria 100px arriba.
+      const a = anchor.getBoundingClientRect();
+      const h = header.getBoundingClientRect();
+      const half = CLUSTER_SIZE / 2;
+
+      setDock({
+        // mobile: a la izquierda de la hamburguesa, si no la tapa.
+        // desktop: pegado a la derecha del CTA, como estaba.
+        left: onToggle
+          ? a.left - h.left - 10 - half
+          : Math.min(a.right - h.left + half, window.innerWidth - 24 - half),
+        top: a.top - h.top + a.height / 2,
+      });
+    };
+
+    measure();
+    // el header entra con una animacion de 0.8s: se remide al asentarse
+    const settle = window.setTimeout(measure, 900);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.clearTimeout(settle);
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
 
   // titilacion de hero_1: parpadeo organico — tres ondas superpuestas de
   // frecuencias distintas para que nunca se sienta mecanico
@@ -221,10 +265,9 @@ export default function VibraHero() {
       const h = window.innerHeight;
       // escala inicial: cubre 110vmin, igual que el frame final del video B
       const startScale = (1.1 * Math.min(w, h)) / CLUSTER_SIZE;
-      const targetLeft = Math.min(w / 2 + 592, w - 32);
       clusterScale.set(startScale + (1 - startScale) * shrinkEase(f));
-      clusterDX.set((w / 2 - targetLeft) * (1 - flyEase(f)));
-      clusterDY.set((h / 2 - 47) * (1 - flyEase(f)));
+      clusterDX.set((w / 2 - dock.left) * (1 - flyEase(f)));
+      clusterDY.set((h / 2 - dock.top) * (1 - flyEase(f)));
     }
 
     // Giro continuo del logo dockeado (4 s/vuelta) + whoosh en pleno vuelo.
@@ -244,12 +287,10 @@ export default function VibraHero() {
   const titleScale = useTransform(scrollYProgress, [0, 0.12], [1, 0.94]);
   const hintOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
 
+  // La caja (position/inset/tamano/object-fit) vive en .hero-media
+  // (globals.css) porque depende del aspect-ratio del viewport y un estilo
+  // inline le ganaria al media query. Aca solo queda lo que no varia.
   const fullscreenMedia = {
-    position: "fixed" as const,
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover" as const,
     zIndex: 0,
     pointerEvents: "none" as const,
     mixBlendMode: "screen" as const,
@@ -300,6 +341,7 @@ export default function VibraHero() {
         quality={100}
         sizes="100vw"
         priority
+        className="hero-media"
         style={{
           ...fullscreenMedia,
           scale: burstScale,
@@ -319,6 +361,7 @@ export default function VibraHero() {
         quality={45}
         sizes="55vw"
         loading="eager"
+        className="hero-media"
         style={{
           ...fullscreenMedia,
           scale: bloomScale,
@@ -337,6 +380,7 @@ export default function VibraHero() {
         quality={35}
         sizes="40vw"
         loading="eager"
+        className="hero-media"
         style={{
           ...fullscreenMedia,
           scale: haloScale,
@@ -353,6 +397,7 @@ export default function VibraHero() {
         muted
         playsInline
         preload="auto"
+        className="hero-media hero-media-fit"
         style={{ ...fullscreenMedia, opacity: videoAOpacity }}
       />
 
@@ -364,6 +409,7 @@ export default function VibraHero() {
         muted
         playsInline
         preload="auto"
+        className="hero-media hero-media-fit"
         style={{ ...fullscreenMedia, opacity: videoBOpacity }}
       />
 
@@ -380,14 +426,11 @@ export default function VibraHero() {
         sizes="110vmin"
         style={{
           position: "fixed",
-          // centro vertical del boton: padding-top del header (24px) + medio
-          // alto del boton (~23px)
-          top: "47px",
-          // centro del logo pegado a la derecha del boton: borde derecho del
-          // boton (50vw + 600px - 2rem de padding del contenedor) + gap de
-          // 0px + medio logo (24px) = 50vw + 592px. En pantallas angostas se
-          // topa a 100vw - 32px para que nunca se salga del viewport.
-          left: "calc(min(50vw + 592px, 100vw - 32px))",
+          // destino medido del header (ver el efecto de `dock` arriba):
+          // centro vertical del control y, en mobile, a su izquierda para no
+          // tapar la hamburguesa
+          top: `${dock.top}px`,
+          left: `${dock.left}px`,
           width: "48px",
           height: "48px",
           objectFit: "cover",

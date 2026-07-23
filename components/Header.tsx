@@ -65,15 +65,13 @@ export default function Header() {
   // Al abrir, el foco entra al primer link para que el teclado siga el orden
   // visual en vez de quedarse detras del panel.
   //
-  // El focus va diferido un frame a proposito: el panel cerrado tiene
-  // visibility: hidden y un elemento invisible no acepta foco, asi que
-  // llamarlo en el mismo commit que abre el menu no hace nada.
+  // Va sincrono, no diferido a un rAF: .site-nav.is-open declara
+  // `visibility 0s`, asi que el panel ya computa visible en este mismo recalc
+  // (un elemento invisible no acepta foco). Diferirlo lo ataba a que hubiera
+  // un frame disponible, y con el hero WebGL corriendo eso puede tardar.
   useEffect(() => {
     if (!open) return;
-    const id = requestAnimationFrame(() => {
-      panelRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
-    });
-    return () => cancelAnimationFrame(id);
+    panelRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
   }, [open]);
 
   // Si se pasa a desktop con el menu abierto, el panel ya es una fila fija:

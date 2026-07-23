@@ -518,7 +518,52 @@ h6,
   box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.7);
 }
 
-/* ---- Header ---- */
+/* ---- Capas de media del hero (imagenes + videos a pantalla completa) ----
+
+   El arte del hero es 16:9 apaisado. Con object-fit: cover en un telefono
+   vertical (390x844) la escala la manda el alto, el render sale ~1500px de
+   ancho y se recorta el 74% — la composicion queda irreconocible, que es
+   justamente el "no se ve el hero en el celular".
+
+   El arreglo NO puede ser el mismo para todas las capas, porque depende del
+   fondo del asset:
+
+   - hero_1.png tiene bordes que no son negros (hasta rgb(13,36,106)). Con
+     mix-blend-mode: screen eso aclara el fondo, asi que si se lo encuadra con
+     contain se ve el rectangulo de la imagen recortado contra el navy. Ademas
+     es un estallido a sangre: recortado sigue leyendose. Se queda con cover.
+
+   - Los videos del morph van sobre negro puro, y su composicion es un cluster
+     compacto y centrado — justo lo que cover destruye. Van con contain
+     (.hero-media-fit): el letterbox es invisible porque screen contra negro
+     es la identidad. */
+.hero-media {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Viewport vertical: el cluster de los videos entra entero.
+   La caja se ensancha al 180% (centrada con left: -40%) en vez de escalar con
+   transform, porque estas capas ya llevan transform inline de framer-motion y
+   un transform del stylesheet seria pisado. Ensanchar la caja hace que
+   contain calcule una escala mayor y el cluster llene mas pantalla; lo que
+   queda afuera son los margenes negros del encuadre, no la composicion. */
+@media (max-aspect-ratio: 1 / 1) {
+  .hero-media-fit {
+    left: -40%;
+    right: auto;
+    width: 180%;
+    /* la guarda global `img, video { max-width: 100% }` clampeaba el 180% a
+       100% y dejaba la capa corrida a la izquierda sin ensanchar. Esta capa
+       es fixed y pointer-events: none, no puede empujar el layout. */
+    max-width: none;
+    object-fit: contain;
+  }
+}
+
 /* ============================================================
    HEADER + NAVEGACION  (mobile-first)
 
