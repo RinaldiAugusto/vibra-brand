@@ -98,6 +98,9 @@ html {
   z-index: 100;
   background: var(--accent);
   color: var(--background);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.6rem 1rem;
   border-radius: var(--radius-sm);
   font-weight: 600;
@@ -210,7 +213,8 @@ h6,
   z-index: 1;
   margin-top: 0.4rem;
   font-size: clamp(0.9rem, 2.4vw, 1.35rem);
-  letter-spacing: 0.42em;
+  /* base mobile: tracking mas corto para que no desborde en 320px */
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   font-weight: 500;
   color: var(--accent);
@@ -244,13 +248,15 @@ h6,
   font-size: 1rem;
 }
 
-/* ---- Demo content below the hero ---- */
+/* ---- Demo content below the hero ----
+   Base = mobile. El padding horizontal sube en tablet/desktop mas abajo,
+   en los bloques min-width. */
 .section {
   position: relative;
   z-index: 10;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 8rem 1.5rem;
+  padding: 4rem 1rem;
 }
 
 .section h2 {
@@ -513,6 +519,13 @@ h6,
 }
 
 /* ---- Header ---- */
+/* ============================================================
+   HEADER + NAVEGACION  (mobile-first)
+
+   Base = mobile: logo + hamburguesa, links en panel desplegable.
+   >=768px: el panel pasa a fila horizontal fija y la hamburguesa se oculta.
+   La logica de apertura vive en Header.tsx; aca solo el estado .is-open.
+   ============================================================ */
 .header {
   position: fixed;
   top: 0;
@@ -525,24 +538,156 @@ h6,
 }
 
 .header-container {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: 0.875rem 1.25rem;
 }
 
 .header-logo {
   text-decoration: none;
   display: flex;
   align-items: center;
+  /* el logo mide 32-38px de alto: el padding lo lleva al minimo tappable
+     de 44px sin agrandar la imagen */
+  padding-block: 0.375rem;
+  min-height: 44px;
 }
 
 .header-logo img {
-  height: 38px;
+  height: 32px;
   width: auto;
   display: block;
+}
+
+/* ---- Boton hamburguesa ---- */
+.nav-toggle {
+  /* 44x44 exactos: el minimo tappable de Apple HIG / 48dp de Material */
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--foreground);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-toggle-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 18px;
+}
+
+.nav-toggle-bar {
+  display: block;
+  height: 2px;
+  width: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.2s var(--ease-out), opacity 0.2s var(--ease-out);
+}
+
+/* Hamburguesa -> X */
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ---- Panel de navegacion (mobile) ---- */
+.site-nav {
+  position: absolute;
+  top: 100%;
+  left: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--background-elevated);
+  box-shadow: var(--shadow-elevated);
+
+  /* Cerrado: fuera del flujo de foco y sin area clickeable. Se anima con
+     opacity/transform (no height) para no disparar reflow.
+
+     visibility va con delay asimetrico y no como transicion normal:
+     `visibility 0.2s` hace el flip discreto al FINAL, o sea que al abrir el
+     panel seguia hidden los 200ms enteros — el fade-in no se veia y el
+     primer link no podia recibir foco (un elemento invisible no es
+     focuseable). Cerrado: se retrasa el hide hasta que termina el fade-out. */
+  opacity: 0;
+  transform: translateY(-0.5rem);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out),
+    visibility 0s linear 0.2s;
+}
+
+.site-nav.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  /* abierto: visible desde el frame 0 */
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out),
+    visibility 0s;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  text-decoration: none;
+  font-size: 1rem;
+  transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out);
+}
+
+.nav-link:hover {
+  background: var(--surface-2);
+  color: var(--accent);
+}
+
+.nav-cta {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-nav,
+  .nav-toggle-bar {
+    transition: none;
+  }
 }
 
 /* ---- Footer ---- */
@@ -622,6 +767,13 @@ h6,
 }
 
 .cta-mail-secondary {
+  /* inline-flex + min-height para llegar al minimo tappable de 44px:
+     como link inline medía 19px de alto */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.5rem;
+  text-align: center;
   color: var(--muted);
   font-size: 0.875rem;
   text-decoration: none;
@@ -752,7 +904,7 @@ h6,
 .service-rows {
   display: flex;
   flex-direction: column;
-  gap: 5rem;
+  gap: 3.5rem;
 }
 
 /* Conector entre Agente Telefónico y Agente de Chat: se pueden combinar. */
@@ -766,7 +918,8 @@ h6,
 
 .combine-line {
   flex: 1;
-  max-width: 120px;
+  /* base mobile: conector corto para dejarle el ancho al texto de la pill */
+  max-width: 40px;
   height: 1px;
   background: linear-gradient(
     90deg,
@@ -780,48 +933,35 @@ h6,
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.6rem 1.2rem;
+  /* base mobile: el texto envuelve en vez de forzar ancho con nowrap */
+  padding: 0.55rem 1rem;
   border-radius: 999px;
   background: rgba(var(--accent-rgb), 0.1);
   border: 1px solid rgba(var(--accent-rgb), 0.35);
   color: var(--accent);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
 }
 
-@media (max-width: 600px) {
+@media (min-width: 768px) {
   .combine-pill {
-    font-size: 0.8rem;
-    padding: 0.55rem 1rem;
-    white-space: normal;
-    text-align: center;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
   }
   .combine-line {
-    max-width: 40px;
+    max-width: 120px;
   }
 }
 
+/* Una columna en mobile; pasa a dos en el bloque min-width: 1024px. */
 .service-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: 2.5rem;
   align-items: center;
-}
-
-@media (min-width: 900px) {
-  .service-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-  }
-  /* Filas reverse: mockup a la izquierda, card a la derecha.
-     En mobile no aplica (queda card arriba / mockup abajo por orden del DOM). */
-  .service-row-reverse .service-info-card {
-    order: 2;
-  }
-  .service-row-reverse .service-mockup-wrap {
-    order: 1;
-  }
 }
 
 .service-info-card {
@@ -871,7 +1011,12 @@ h6,
   --cursor-angle: 45deg;
   --edge-sensitivity: 30;
   --color-sensitivity: calc(var(--edge-sensitivity) + 20);
-  --glow-padding: 40px;
+  /* Headroom para que el box-shadow del glow externo tenga donde dibujarse.
+     Va con clamp y no fijo en 40px: en mobile la carta ocupa casi todo el
+     ancho y un inset de -40px la sacaba 24px fuera del viewport por lado
+     (el unico desborde real de la landing, que solo quedaba tapado por el
+     overflow-x: hidden del body). */
+  --glow-padding: clamp(12px, 2.5vw, 40px);
   --cone-spread: 25;
   --fill-opacity: 0.4;
   --card-bg: var(--background);
@@ -1010,11 +1155,13 @@ h6,
 
 /* ---- Vibra Care: franja de cierre ancho completo (sin CTA) ---- */
 .vibra-care-strip {
-  margin-top: 5rem;
+  /* base mobile: apilado y con menos aire arriba */
+  margin-top: 3rem;
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 1.75rem;
-  padding: 2.5rem 2.25rem;
+  gap: 1.25rem;
+  padding: 2rem 1.5rem;
   border-radius: var(--radius-md);
   background: linear-gradient(
     120deg,
@@ -1059,8 +1206,10 @@ h6,
   padding: 0;
   margin: 0;
   display: flex;
+  /* base mobile: una feature por linea */
+  flex-direction: column;
   flex-wrap: wrap;
-  gap: 0.75rem 2rem;
+  gap: 0.75rem;
 }
 
 .vibra-care-features li {
@@ -1069,18 +1218,6 @@ h6,
   gap: 0.6rem;
   color: var(--foreground);
   font-size: 0.95rem;
-}
-
-@media (max-width: 600px) {
-  .vibra-care-strip {
-    flex-direction: column;
-    gap: 1.25rem;
-    padding: 2rem 1.5rem;
-  }
-  .vibra-care-features {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
 }
 
 /* La descripción no debe estirarse (el CTA se empuja con margin-top:auto). */
@@ -1679,7 +1816,7 @@ h6,
 .agents-fan {
   position: relative;
   width: 100%;
-  height: clamp(420px, 64vw, 540px);
+  height: clamp(360px, 92vw, 440px);
   pointer-events: none; /* mockup decorativo */
 }
 
@@ -1688,7 +1825,7 @@ h6,
 .agents-single {
   position: relative;
   width: 100%;
-  min-height: clamp(420px, 60vw, 520px);
+  min-height: clamp(360px, 88vw, 460px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1696,52 +1833,53 @@ h6,
 }
 
 .agents-single-phone {
-  width: clamp(220px, 42vw, 280px);
+  width: clamp(190px, 56vw, 240px);
   filter: drop-shadow(0 24px 44px rgba(var(--shadow-rgb), 0.5));
 }
 
-/* Radios escalados al ancho real del frame (~280px) para que las esquinas
-   mantengan la silueta de celular y no queden ni cuadradas ni tipo pastilla.
-   Relación del sitio: display = frame - borde - padding. */
+/* Radios escalados al ancho real del frame para que las esquinas mantengan la
+   silueta de celular y no queden ni cuadradas ni tipo pastilla.
+   Relación del sitio: display = frame - borde - padding.
+   Base = frame mobile (~240px); el frame grande va en min-width: 768px. */
 .agents-single-phone .mockup-phone {
-  border-width: 5px;
-  border-radius: 60px;
-  padding: 6px;
+  border-width: 4px;
+  border-radius: 44px;
+  padding: 4px;
 }
 .agents-single-phone .mockup-phone-display {
-  border-radius: 49px;
+  border-radius: 36px;
 }
 
 /* La isla dinámica (cámara) vive arriba y al centro: empujamos el contenido
    de cada UI para que el header/estado nunca queden tapados por ella. */
 .agents-single-phone .wa-header {
-  padding-top: 22px;
+  padding-top: 18px;
 }
 .agents-single-phone .call-ui {
-  padding-top: 30px;
+  padding-top: 24px;
 }
 
-@media (max-width: 600px) {
+@media (min-width: 768px) {
   .agents-single {
-    min-height: clamp(360px, 88vw, 460px);
+    min-height: clamp(420px, 60vw, 520px);
   }
   .agents-single-phone {
-    width: clamp(190px, 56vw, 240px);
+    width: clamp(220px, 42vw, 280px);
   }
-  /* frame más chico → radios y clearance de isla proporcionalmente menores */
+  /* frame más grande → radios y clearance de isla proporcionalmente mayores */
   .agents-single-phone .mockup-phone {
-    border-width: 4px;
-    border-radius: 44px;
-    padding: 4px;
+    border-width: 5px;
+    border-radius: 60px;
+    padding: 6px;
   }
   .agents-single-phone .mockup-phone-display {
-    border-radius: 36px;
+    border-radius: 49px;
   }
   .agents-single-phone .wa-header {
-    padding-top: 18px;
+    padding-top: 22px;
   }
   .agents-single-phone .call-ui {
-    padding-top: 24px;
+    padding-top: 30px;
   }
 }
 
@@ -1749,57 +1887,57 @@ h6,
   position: absolute;
   top: 50%;
   left: 50%;
-  width: clamp(150px, 30vw, 210px);
+  width: clamp(132px, 40vw, 168px);
 }
 
 /* Misma silueta que el celular de la fila 1, escalada a este frame mas chico.
-   Fila 1 (~300px): radio 65 / display 54 / borde 5 / padding 6 (ratio ~0.7 a
-   ~210px). Se mantiene la relacion display = radio - borde - padding. */
+   Se mantiene la relacion display = radio - borde - padding.
+   Base = frame mobile (~150px); el frame grande va en min-width: 768px. */
 .agents-fan-phone .mockup-phone {
-  border-width: 4px;
-  border-radius: 46px;
-  padding: 4px;
+  border-width: 3px;
+  border-radius: 33px;
+  padding: 3px;
 }
 .agents-fan-phone .mockup-phone-display {
-  border-radius: 38px;
+  border-radius: 27px;
 }
 
-/* Chat detrás/escalonado: mas a la izquierda, rotado, mas chico y atenuado */
+/* Chat detrás/escalonado: mas a la izquierda, rotado, mas chico y atenuado.
+   Base mobile con rotacion/offset reducidos para no romper el layout. */
 .agents-fan-phone-back {
-  transform: translate(-92%, -56%) rotate(-8deg) scale(0.86);
+  transform: translate(-82%, -55%) rotate(-6deg) scale(0.82);
   z-index: 1;
   filter: brightness(0.8) saturate(0.95);
 }
 
 /* Llamada adelante y protagonista: mas a la derecha, tamaño pleno */
 .agents-fan-phone-front {
-  transform: translate(-8%, -42%) rotate(4deg);
+  transform: translate(-18%, -44%) rotate(3deg);
   z-index: 2;
   filter: drop-shadow(0 24px 44px rgba(var(--shadow-rgb), 0.55));
 }
 
-/* En pantallas angostas achico rotacion/offset para no romper el layout */
-@media (max-width: 600px) {
+@media (min-width: 768px) {
   .agents-fan {
-    height: clamp(360px, 92vw, 440px);
+    height: clamp(420px, 64vw, 540px);
   }
   .agents-fan-phone {
-    width: clamp(132px, 40vw, 168px);
+    width: clamp(150px, 30vw, 210px);
   }
-  /* misma proporcion, escalada al frame aun mas chico de mobile (~150px) */
+  /* misma proporcion, escalada al frame mas grande (~210px) */
   .agents-fan-phone .mockup-phone {
-    border-width: 3px;
-    border-radius: 33px;
-    padding: 3px;
+    border-width: 4px;
+    border-radius: 46px;
+    padding: 4px;
   }
   .agents-fan-phone .mockup-phone-display {
-    border-radius: 27px;
+    border-radius: 38px;
   }
   .agents-fan-phone-back {
-    transform: translate(-82%, -55%) rotate(-6deg) scale(0.82);
+    transform: translate(-92%, -56%) rotate(-8deg) scale(0.86);
   }
   .agents-fan-phone-front {
-    transform: translate(-18%, -44%) rotate(3deg);
+    transform: translate(-8%, -42%) rotate(4deg);
   }
 }
 
@@ -2195,8 +2333,8 @@ h6,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 10px;
   background: rgba(var(--foreground-rgb), 0.05);
   border: 1px solid rgba(var(--foreground-rgb), 0.1);
@@ -2228,7 +2366,7 @@ h6,
   position: relative;
   flex: 1;
   height: 2px;
-  margin-top: 17px;
+  margin-top: 15px;
   border-radius: 2px;
   background: rgba(var(--foreground-rgb), 0.12);
   overflow: visible;
@@ -2276,7 +2414,7 @@ h6,
 .dash-stat {
   flex: 1;
   min-width: 0;
-  padding: 10px 8px;
+  padding: 8px 6px;
   border-radius: 10px;
   background: rgba(var(--foreground-rgb), 0.04);
   border: 1px solid rgba(var(--foreground-rgb), 0.08);
@@ -2284,7 +2422,7 @@ h6,
 
 .dash-value {
   font-family: var(--font-heading), system-ui, sans-serif;
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 700;
   line-height: 1;
   color: var(--foreground);
@@ -2334,19 +2472,20 @@ h6,
 }
 
 /* En pantallas chicas: achico numeros/iconos para que no se apriete */
-@media (max-width: 600px) {
+/* Base = mockup en mobile; a partir de tablet recupera su escala plena. */
+@media (min-width: 768px) {
   .flow-node {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
   }
   .flow-conn {
-    margin-top: 15px;
+    margin-top: 17px;
   }
   .dash-value {
-    font-size: 21px;
+    font-size: 26px;
   }
   .dash-stat {
-    padding: 8px 6px;
+    padding: 10px 8px;
   }
 }
 
@@ -2378,9 +2517,12 @@ h6,
 .crm-fan-phone {
   position: absolute;
   z-index: 1;
-  top: -7%;
-  left: -25%;
-  width: 28%;
+  /* base mobile: oculto — se superponia al dashboard y desbordaba. Vuelve
+     en el bloque min-width: 768px. */
+  display: none;
+  top: -4%;
+  left: -11%;
+  width: 30%;
   max-width: 168px;
   transform: rotate(-6deg);
   filter: brightness(0.98) saturate(1)
@@ -2423,7 +2565,7 @@ h6,
 }
 
 .crm-stat {
-  padding: 7px 8px;
+  padding: 6px;
   border-radius: 9px;
   background: rgba(var(--foreground-rgb), 0.04);
   border: 1px solid rgba(var(--foreground-rgb), 0.08);
@@ -2438,7 +2580,7 @@ h6,
 .crm-stat-value {
   margin-top: 5px;
   font-family: var(--font-heading), system-ui, sans-serif;
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -2821,54 +2963,129 @@ h6,
   text-overflow: ellipsis;
 }
 
-/* ---- Responsive de la landing ---- */
-@media (max-width: 600px) {
+/* Base = mockup en mobile; desde tablet recupera su escala plena y reaparece
+   el celular decorativo (en mobile desbordaba sobre la compu). */
+@media (min-width: 768px) {
   .crm-fan-phone {
-    width: 30%;
-    left: -11%;
-    top: -4%;
+    display: block;
+    width: 28%;
+    left: -25%;
+    top: -7%;
   }
   .crm-stat-value {
-    font-size: 16px;
+    font-size: 19px;
   }
   .crm-stat {
-    padding: 6px;
+    padding: 7px 8px;
   }
 }
 
-/* Muy angosto: el celular podría desbordar → dejamos solo la compu centrada */
-@media (max-width: 460px) {
-  .crm-fan-phone {
+/* ============================================================
+   TABLET — min-width: 768px
+   Primer escalon sobre la base mobile: mas aire, el nav se despliega
+   como fila y las franjas apiladas vuelven a ser horizontales.
+   ============================================================ */
+@media (min-width: 768px) {
+  .section {
+    padding: 5.5rem 2rem;
+  }
+
+  .header-container {
+    padding: 1.1rem 1.5rem;
+  }
+
+  .header-logo img {
+    height: 38px;
+  }
+
+  .tagline {
+    letter-spacing: 0.42em;
+  }
+
+  /* ---- El nav deja de ser panel y pasa a fila; la hamburguesa se va ---- */
+  .nav-toggle {
     display: none;
   }
-}
 
-/* ---- Ritmo y padding en mobile: menos aire vertical, menos margen lateral ---- */
-@media (max-width: 640px) {
-  .section {
-    padding: 4.5rem 1.25rem;
+  .site-nav {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+
+    /* siempre visible: se anula el estado cerrado del panel mobile */
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+    pointer-events: auto;
+    transition: none;
   }
-  .header-container {
-    padding: 1.1rem 1.25rem;
+
+  .nav-list {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.25rem;
   }
-  .service-rows {
-    gap: 3.5rem;
+
+  .nav-link {
+    font-size: 0.9375rem;
+    padding-inline: 0.625rem;
   }
-  /* La franja Vibra Care no necesita tanto aire arriba en mobile. */
+
+  .nav-cta {
+    width: auto;
+    margin-top: 0;
+    margin-left: 0.5rem;
+  }
+
+  /* ---- Franjas que vuelven a horizontal ---- */
   .vibra-care-strip {
-    margin-top: 3rem;
+    margin-top: 5rem;
+    flex-direction: row;
+    gap: 1.75rem;
+    padding: 2.5rem 2.25rem;
+  }
+
+  .vibra-care-features {
+    flex-direction: row;
+    gap: 0.75rem 2rem;
   }
 }
 
-/* ---- Teléfonos muy chicos (<380px): ajustes finos anti-desborde ---- */
-@media (max-width: 380px) {
-  .tagline {
-    letter-spacing: 0.3em;
-  }
-  .header-logo img {
-    height: 32px;
-  }
+/* ============================================================
+   DESKTOP — min-width: 1024px
+   ============================================================ */
+@media (min-width: 1024px) {
   .section {
-    padding: 4rem 1rem;
+    padding: 8rem 2rem;
+  }
+
+  .service-rows {
+    gap: 5rem;
+  }
+
+  .nav-link {
+    font-size: 1rem;
+    padding-inline: 0.875rem;
+  }
+
+  /* Fila de servicio a dos columnas (antes vivia en un min-width: 900 suelto).
+     Reverse: mockup a la izquierda, card a la derecha. */
+  .service-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+
+  .service-row-reverse .service-info-card {
+    order: 2;
+  }
+
+  .service-row-reverse .service-mockup-wrap {
+    order: 1;
   }
 }

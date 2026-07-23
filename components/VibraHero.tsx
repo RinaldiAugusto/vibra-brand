@@ -280,10 +280,10 @@ export default function VibraHero() {
           mouseRepulsion={false}
           disableAnimation={!!reduce}
           paused={starsPaused}
-          density={0.9}
-          glowIntensity={0.25}
-          twinkleIntensity={0.35}
-          saturation={0}
+          density={1.15}
+          glowIntensity={0.95}
+          twinkleIntensity={0.45}
+          saturation={0.55}
           starSpeed={0.3}
           speed={0.8}
           rotationSpeed={0.03}

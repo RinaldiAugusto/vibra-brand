@@ -6,10 +6,21 @@ import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 /**
  * Campo de estrellas WebGL — port a TS de "Galaxy" (React Bits, variante
  * JS-CSS). El proyecto no usa shadcn/Tailwind, asi que en vez de correr
- * `npx shadcn add @react-bits/Galaxy-JS-CSS` se vendorea el componente aca:
- * el shader va identico al registry, solo cambian el tipado, el estilo
- * inline pasado desde afuera y la baja del canvas cuando el contenedor ya
- * no existe.
+ * `npx shadcn add @react-bits/Galaxy-JS-CSS` se vendorea el componente aca.
+ *
+ * Se conserva la estructura del registry (capas de profundidad, celdas con
+ * hash, deriva y rotacion) pero el dibujo de la estrella esta reescrito: el
+ * original renderizaba manchas 1/d con cruces de `1 - abs(x*y*1000)` que
+ * salian escalonadas, tamano uniforme y una estrella por celda — leia como
+ * suciedad en rejilla, no como cielo. Ahora:
+ *
+ *  - nucleo gaussiano de tamano constante en pixeles + halo lorentziano;
+ *  - magnitudes con ley de potencia (muchas debiles, pocas brillantes);
+ *  - ~55% de celdas ocupadas con jitter completo -> huecos y grumos;
+ *  - puntas de difraccion suaves solo en las mas brillantes;
+ *  - color por temperatura estelar (azul-blanco -> ambar), sin atan/hsv;
+ *  - centelleo con frecuencia propia por estrella, solo sobre el nucleo;
+ *  - salida aditiva real (color normalizado + alfa = luminancia) y dither.
  *
  * En el hero se usa como telon de fondo (mouseInteraction=false): el
  * protagonismo es del morph atado al scroll, las estrellas solo respiran.
@@ -52,9 +63,7 @@ uniform bool uTransparent;
 varying vec2 vUv;
 
 #define NUM_LAYER 4.0
-#define STAR_COLOR_CUTOFF 0.2
 #define MAT45 mat2(0.7071, -0.7071, 0.7071, 0.7071)
-#define PERIOD 3.0
 
 float Hash21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -62,36 +71,68 @@ float Hash21(vec2 p) {
   return fract(p.x * p.y);
 }
 
-float tri(float x) {
-  return abs(fract(x) * 2.0 - 1.0);
-}
-
 float tris(float x) {
   float t = fract(x);
   return 1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0));
 }
 
-float trisn(float x) {
-  float t = fract(x);
-  return 2.0 * (1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0))) - 1.0;
+// escala de la capa que se esta dibujando: 1 unidad de celda = 1/gScale
+// alturas de pantalla. Global porque cambia por capa, no por frame.
+float gScale = 1.0;
+// multiplicador de radio de la capa (unico rastro de parallax en el tamano)
+float gRadiusMul = 1.0;
+
+/**
+ * Perfil de una estrella. p va en unidades de celda; radius y la distancia
+ * se convierten a alturas de pantalla para que el punto mida siempre lo mismo
+ * en pixeles sin importar la capa de profundidad (una estrella es una fuente
+ * puntual: la parallax cambia densidad y brillo, no tamano).
+ *
+ *  - nucleo: gaussiana apretada -> punto nitido, no la mancha del 1/d.
+ *  - halo: lorentziana ancha y barata, cola suave que se apaga sola.
+ *  - puntas de difraccion: dos brazos lorentzianos cruzados (largo en un eje,
+ *    angosto en el otro) en vez del 1 - abs(x*y*1000) que salia escalonado.
+ */
+float Star(vec2 p, float radius, float haloAmt, float flare, float twinkle) {
+  float d = length(p) / gScale;
+  float x = d / radius;
+
+  float core = exp(-x * x) * twinkle;
+  // el halo se paga con brillo: las debiles quedan como puntos limpios en vez
+  // de manchitas difusas, que era la mitad de la "suciedad" del original
+  float halo = haloAmt / (1.0 + x * x * 0.06);
+  float m = core + halo;
+
+  if (flare > 0.0) {
+    vec2 s = abs(p) / (gScale * radius);
+    // brazo horizontal y vertical
+    m += flare * (1.0 / (1.0 + s.x * s.x * 0.04)) * (1.0 / (1.0 + s.y * s.y * 8.0));
+    m += flare * (1.0 / (1.0 + s.y * s.y * 0.04)) * (1.0 / (1.0 + s.x * s.x * 8.0));
+    // par a 45 grados, mas corto y tenue
+    vec2 q = abs(p * MAT45) / (gScale * radius);
+    m += flare * 0.22 * (1.0 / (1.0 + q.x * q.x * 0.16)) * (1.0 / (1.0 + q.y * q.y * 10.0));
+    m += flare * 0.22 * (1.0 / (1.0 + q.y * q.y * 0.16)) * (1.0 / (1.0 + q.x * q.x * 10.0));
+  }
+
+  // corta antes de d=1 (celda) para que no queden costuras entre celdas
+  return m * smoothstep(1.0, 0.25, length(p));
 }
 
-vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-float Star(vec2 uv, float flare) {
-  float d = length(uv);
-  float m = (0.05 * uGlowIntensity) / d;
-  float rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
-  m += rays * flare * uGlowIntensity;
-  uv *= MAT45;
-  rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
-  m += rays * 0.3 * flare * uGlowIntensity;
-  m *= smoothstep(1.0, 0.2, d);
-  return m;
+/**
+ * Rotacion de tono barata (matriz YIQ) — reemplaza al par atan()+hsv2rgb que
+ * el shader original evaluaba por celda. Se aplica una sola vez sobre el color
+ * ya sumado: al ser una matriz es lineal, asi que rotar cada estrella y sumar
+ * da identico a sumar y rotar, pero cuesta 36 veces menos.
+ */
+vec3 hueRotate(vec3 c, float deg) {
+  float a = radians(deg);
+  float cs = cos(a);
+  float sn = sin(a);
+  return max(mat3(
+    0.299 + 0.701 * cs + 0.168 * sn, 0.587 - 0.587 * cs + 0.330 * sn, 0.114 - 0.114 * cs - 0.497 * sn,
+    0.299 - 0.299 * cs - 0.328 * sn, 0.587 + 0.413 * cs + 0.035 * sn, 0.114 - 0.114 * cs + 0.292 * sn,
+    0.299 - 0.300 * cs + 1.250 * sn, 0.587 - 0.588 * cs - 1.050 * sn, 0.114 + 0.886 * cs - 0.203 * sn
+  ) * c, 0.0);
 }
 
 vec3 StarLayer(vec2 uv) {
@@ -100,36 +141,54 @@ vec3 StarLayer(vec2 uv) {
   vec2 gv = fract(uv) - 0.5;
   vec2 id = floor(uv);
 
+  // un pixel expresado en alturas de pantalla: piso de radio para que ninguna
+  // estrella caiga por debajo del pixel y titile por aliasing
+  float pxRadius = 1.15 / uResolution.y;
+
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {
       vec2 offset = vec2(float(x), float(y));
-      vec2 si = id + vec2(float(x), float(y));
+      vec2 si = id + offset;
+
       float seed = Hash21(si);
-      float size = fract(seed * 345.32);
-      float glossLocal = tri(uStarSpeed / (PERIOD * seed + 1.0));
-      float flareSize = smoothstep(0.9, 1.0, size) * glossLocal;
+      float alt = Hash21(si + 41.7);
 
-      float red = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 1.0)) + STAR_COLOR_CUTOFF;
-      float blu = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 3.0)) + STAR_COLOR_CUTOFF;
-      float grn = min(red, blu) * seed;
-      vec3 base = vec3(red, grn, blu);
+      // ~55% de celdas ocupadas: rompe la rejilla y deja huecos y grumos
+      float present = step(fract(seed * 7.31), 0.55);
 
-      float hue = atan(base.g - base.r, base.b - base.r) / (2.0 * 3.14159) + 0.5;
-      hue = fract(hue + uHueShift / 360.0);
-      float sat = length(base - vec3(dot(base, vec3(0.299, 0.587, 0.114)))) * uSaturation;
-      float val = max(max(base.r, base.g), base.b);
-      base = hsv2rgb(vec3(hue, sat, val));
+      // magnitud con ley de potencia: muchisimas debiles, muy pocas brillantes.
+      // La distribucion uniforme original llenaba todo de estrellas medias, que
+      // es lo que leia como ruido sucio.
+      float mag = fract(seed * 137.0);
+      mag = mag * mag * mag;
 
-      vec2 pad = vec2(tris(seed * 34.0 + uTime * uSpeed / 10.0), tris(seed * 38.0 + uTime * uSpeed / 30.0)) - 0.5;
+      float radius = max(mix(0.0013, 0.0032, mag) * gRadiusMul, pxRadius);
+      float bright = mix(0.10, 1.0, mag) * present;
+      float haloAmt = mix(0.006, 0.06, mag);
+      float flare = smoothstep(0.74, 1.0, mag) * 0.16;
 
-      float star = Star(gv - offset - pad, flareSize);
-      vec3 color = base;
+      // centelleo con frecuencia propia por estrella (scintillation, no un
+      // parpadeo al unisono) y solo sobre el nucleo: el halo queda estable
+      float tw = sin(uTime * uSpeed * (0.7 + alt * 2.1) + seed * 43.0) * 0.5 + 0.5;
+      tw = mix(1.0, 0.5 + 0.8 * tw, uTwinkleIntensity);
 
-      float twinkle = trisn(uTime * uSpeed + seed * 6.2831) * 0.5 + 1.0;
-      twinkle = mix(1.0, twinkle, uTwinkleIntensity);
-      star *= twinkle;
+      // posicion: jitter fijo en toda la celda + una deriva minima que respira
+      vec2 jitter = vec2(fract(alt * 191.0), fract(alt * 331.0)) - 0.5;
+      vec2 drift = vec2(
+        tris(seed * 34.0 + uTime * uSpeed / 14.0),
+        tris(alt * 38.0 + uTime * uSpeed / 26.0)
+      ) - 0.5;
+      vec2 pos = jitter * 0.9 + drift * 0.1;
 
-      col += star * size * color;
+      // color por temperatura estelar: mayoria blanco-azuladas, unas pocas
+      // calidas. uSaturation interpola de blanco puro a tinte pleno.
+      float temp = fract(alt * 53.0);
+      vec3 tint = temp < 0.62
+        ? mix(vec3(0.62, 0.79, 1.0), vec3(1.0, 0.99, 0.97), temp / 0.62)
+        : mix(vec3(1.0, 0.99, 0.97), vec3(1.0, 0.83, 0.64), (temp - 0.62) / 0.38);
+      tint = mix(vec3(1.0), tint, uSaturation);
+
+      col += Star(gv - offset - pos, radius, haloAmt, flare, tw) * bright * tint;
     }
   }
 
@@ -167,16 +226,28 @@ void main() {
 
   for (float i = 0.0; i < 1.0; i += 1.0 / NUM_LAYER) {
     float depth = fract(i + uStarSpeed * uSpeed);
-    float scale = mix(20.0 * uDensity, 0.5 * uDensity, depth);
+    gScale = mix(20.0 * uDensity, 0.5 * uDensity, depth);
+    // las capas cercanas rinden estrellas apenas mas gruesas: el tamano ya no
+    // escala con la profundidad, asi que este es el unico resto de parallax
+    gRadiusMul = mix(0.85, 1.5, depth);
     float fade = depth * smoothstep(1.0, 0.9, depth);
-    col += StarLayer(uv * scale + i * 453.32) * fade;
+    col += StarLayer(uv * gScale + i * 453.32) * fade;
   }
 
+  col = hueRotate(col, uHueShift) * uGlowIntensity;
+
+  // dither: sin esto los halos tenues bandean sobre el navy con blend screen
+  col += (Hash21(gl_FragCoord.xy + fract(uTime)) - 0.5) / 255.0;
+  col = max(col, vec3(0.0));
+
   if (uTransparent) {
-    float alpha = length(col);
-    alpha = smoothstep(0.0, 0.3, alpha);
-    alpha = min(alpha, 1.0);
-    gl_FragColor = vec4(col, alpha);
+    // El canvas se compone con mix-blend-mode: screen sobre el fondo. Se emite
+    // color normalizado + alfa = luminancia para que el navegador, al
+    // premultiplicar (premultipliedAlpha: false), reconstruya col exacto:
+    // brillo aditivo real, sin el umbral duro que recortaba las estrellas
+    // debiles del shader original.
+    float lum = clamp(max(max(col.r, col.g), col.b), 0.0, 1.0);
+    gl_FragColor = vec4(col / max(lum, 1e-4), lum);
   } else {
     gl_FragColor = vec4(col, 1.0);
   }
@@ -188,11 +259,13 @@ type GalaxyProps = {
   rotation?: [number, number];
   starSpeed?: number;
   density?: number;
+  /** Grados de rotacion de tono sobre el tinte por temperatura. */
   hueShift?: number;
   disableAnimation?: boolean;
   speed?: number;
   mouseInteraction?: boolean;
   glowIntensity?: number;
+  /** 0 = estrellas blancas, 1 = tinte de temperatura pleno. */
   saturation?: number;
   mouseRepulsion?: boolean;
   repulsionStrength?: number;
@@ -213,15 +286,15 @@ export default function Galaxy({
   rotation = [1.0, 0.0],
   starSpeed = 0.5,
   density = 1,
-  hueShift = 140,
+  hueShift = 0,
   disableAnimation = false,
   speed = 1.0,
   mouseInteraction = true,
-  glowIntensity = 0.3,
-  saturation = 0.0,
+  glowIntensity = 1.0,
+  saturation = 0.5,
   mouseRepulsion = true,
   repulsionStrength = 2,
-  twinkleIntensity = 0.3,
+  twinkleIntensity = 0.5,
   rotationSpeed = 0.1,
   autoCenterRepulsion = 0,
   transparent = true,
@@ -255,8 +328,11 @@ export default function Galaxy({
     const gl = renderer.gl;
 
     if (transparent) {
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      // Sin blending: es un unico triangulo a pantalla completa sobre un buffer
+      // limpio, no hay nada contra que mezclar. Ademas el shader emite color
+      // normalizado + alfa = luminancia, y un SRC_ALPHA aca lo multiplicaria
+      // una segunda vez (los halos se irian a negro).
+      gl.disable(gl.BLEND);
       gl.clearColor(0, 0, 0, 0);
     } else {
       gl.clearColor(0, 0, 0, 1);
