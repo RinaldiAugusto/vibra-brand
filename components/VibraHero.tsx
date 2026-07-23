@@ -81,6 +81,7 @@ export default function VibraHero() {
   const canvasBRef = useRef<HTMLCanvasElement>(null);
   const ctxRefs = useRef<(CanvasRenderingContext2D | null)[]>([null, null]);
   const lastDrawnT = useRef<number[]>([-1, -1]);
+  const fadeGrads = useRef<(CanvasGradient | null)[]>([null, null]);
 
   // Respeta prefers-reduced-motion: congela los bucles autoplay (titileo,
   // bloom/halo pulsante, giro continuo del logo). El morph sigue atado al
@@ -298,15 +299,18 @@ export default function VibraHero() {
   );
 
   // ---- campo de estrellas: telon de fondo de la escena ----
-  // Se apaga junto al vuelo de hero_3: cuando el cluster termina de dockear
-  // en el header ya no queda espacio en pantalla y entra la LampSection.
-  const starsOpacity = useTransform(scrollYProgress, [0.66, 0.85], [1, 0]);
+  // Se apaga tarde y gradual (0.72 -> 1.0). Antes moria en 0.85 y dejaba una
+  // franja de scroll con la pantalla en NEGRO puro entre que el morph se va y
+  // la LampSection entra desde abajo (el "se rompe" del final: un vacio negro
+  // al terminar la animacion). Manteniendo las estrellas hasta el final del
+  // pin, ese tramo sigue siendo el espacio de la escena en vez de un hueco.
+  const starsOpacity = useTransform(scrollYProgress, [0.72, 1.0], [1, 0]);
 
   // Pasado el fade la capa es invisible: se congela el render en vez de
   // desmontarla, asi volver arriba no recrea el contexto WebGL.
   const [starsPaused, setStarsPaused] = useState(false);
   useMotionValueEvent(scrollYProgress, "change", (p) => {
-    setStarsPaused(p >= 0.85);
+    setStarsPaused(p >= 1.0);
   });
 
   // Hueco en el centro: la estrella principal manda, el campo de fondo no se
@@ -472,25 +476,54 @@ export default function VibraHero() {
 
     // Copia el frame vigente de cada video a su canvas visible, solo
     // mientras la capa esta en su ventana (fuera de ella opacity es 0 y
-    // dibujar seria trabajo desperdiciado) y solo si el frame AVANZO:
-    // reproduciendo, currentTime cambia en cada tick y se dibuja; quieto en
-    // un stop del scroll, no se re-dibuja lo mismo 60 veces por segundo (en
-    // iOS el drawImage de video no es gratis).
+    // dibujar seria trabajo desperdiciado) y solo si el frame AVANZO o si
+    // cambio la orientacion (el fade horneado es distinto): reproduciendo,
+    // currentTime cambia y se dibuja; quieto en un stop del scroll, no se
+    // re-dibuja lo mismo 60 veces por segundo (en iOS drawImage no es gratis).
+    const portrait = portraitMV.get() === 1;
     const draw = (
       video: HTMLVideoElement | null,
       canvas: HTMLCanvasElement | null,
       slot: number
     ) => {
       if (!video || !canvas || video.readyState < 2) return;
-      if (lastDrawnT.current[slot] === video.currentTime) return;
+      const stamp = video.currentTime + (portrait ? 0.5 : 0);
+      if (lastDrawnT.current[slot] === stamp) return;
       let ctx = ctxRefs.current[slot];
       if (!ctx) {
         ctx = canvas.getContext("2d");
         ctxRefs.current[slot] = ctx;
       }
       if (!ctx) return;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      lastDrawnT.current[slot] = video.currentTime;
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(video, 0, 0, w, h);
+      // Fade vertical de la franja HORNEADO en el alfa del canvas, no via
+      // CSS mask-image. En iOS, mask-image + mix-blend-mode: screen sobre un
+      // <canvas> no compone bien: el negro del video se pintaba como un
+      // rectangulo casi opaco tapando el campo de estrellas — el "marco"
+      // arriba y abajo (medido en la grabacion: saltos de luminancia en los
+      // bordes de la franja). Con el alfa ya en los pixeles, el canvas es una
+      // capa comun y el screen blend (sin mask) si funciona. Solo en
+      // vertical; en landscape la franja llena la pantalla y no lleva fade.
+      if (portrait) {
+        let g = fadeGrads.current[slot];
+        if (!g) {
+          g = ctx.createLinearGradient(0, 0, 0, h);
+          g.addColorStop(0, "rgba(0,0,0,1)");
+          g.addColorStop(0.26, "rgba(0,0,0,0)");
+          g.addColorStop(0.74, "rgba(0,0,0,0)");
+          g.addColorStop(1, "rgba(0,0,0,1)");
+          fadeGrads.current[slot] = g;
+        }
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = "source-over";
+      }
+      lastDrawnT.current[slot] = stamp;
     };
     if (p >= 0.06 && p < 0.46) draw(videoARef.current, canvasARef.current, 0);
     if (p >= 0.34 && p < 0.68) draw(videoBRef.current, canvasBRef.current, 1);
@@ -739,7 +772,7 @@ export default function VibraHero() {
         ref={canvasARef}
         width={1280}
         height={720}
-        className="hero-media"
+        className="hero-media hero-morph-canvas"
         style={{ ...fullscreenMedia, opacity: videoAOpacity }}
       />
 
@@ -749,7 +782,7 @@ export default function VibraHero() {
         ref={canvasBRef}
         width={1280}
         height={720}
-        className="hero-media"
+        className="hero-media hero-morph-canvas"
         style={{ ...fullscreenMedia, opacity: videoBOpacity }}
       />
 

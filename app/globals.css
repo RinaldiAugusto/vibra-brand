@@ -633,6 +633,15 @@ h6,
      del wordmark, como en desktop. Se corren TODAS las capas por igual para
      no romper la continuidad del morph (el vuelo de hero_3 compensa este
      mismo corrimiento en el rAF). */
+  /* Los canvas del morph NO usan mask-image: el fade va horneado en el alfa
+     del canvas (ver draw() en VibraHero). En iOS mask-image + mix-blend-mode
+     sobre un canvas pintaba el negro del video como un rectangulo opaco — el
+     "marco" arriba y abajo. Sin mask, el screen blend compone bien. */
+  .hero-morph-canvas {
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+
   .hero-media {
     margin-left: calc(var(--hero-art-w) * -0.53);
     margin-top: calc(var(--hero-art-h) * -0.48);
