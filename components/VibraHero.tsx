@@ -80,6 +80,7 @@ export default function VibraHero() {
   const canvasARef = useRef<HTMLCanvasElement>(null);
   const canvasBRef = useRef<HTMLCanvasElement>(null);
   const ctxRefs = useRef<(CanvasRenderingContext2D | null)[]>([null, null]);
+  const lastDrawnT = useRef<number[]>([-1, -1]);
 
   // Respeta prefers-reduced-motion: congela los bucles autoplay (titileo,
   // bloom/halo pulsante, giro continuo del logo). El morph sigue atado al
@@ -471,20 +472,25 @@ export default function VibraHero() {
 
     // Copia el frame vigente de cada video a su canvas visible, solo
     // mientras la capa esta en su ventana (fuera de ella opacity es 0 y
-    // dibujar seria trabajo desperdiciado). drawImage de un 720p por tick
-    // es barato: es un blit de GPU.
+    // dibujar seria trabajo desperdiciado) y solo si el frame AVANZO:
+    // reproduciendo, currentTime cambia en cada tick y se dibuja; quieto en
+    // un stop del scroll, no se re-dibuja lo mismo 60 veces por segundo (en
+    // iOS el drawImage de video no es gratis).
     const draw = (
       video: HTMLVideoElement | null,
       canvas: HTMLCanvasElement | null,
       slot: number
     ) => {
       if (!video || !canvas || video.readyState < 2) return;
+      if (lastDrawnT.current[slot] === video.currentTime) return;
       let ctx = ctxRefs.current[slot];
       if (!ctx) {
         ctx = canvas.getContext("2d");
         ctxRefs.current[slot] = ctx;
       }
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      lastDrawnT.current[slot] = video.currentTime;
     };
     if (p >= 0.06 && p < 0.46) draw(videoARef.current, canvasARef.current, 0);
     if (p >= 0.34 && p < 0.68) draw(videoBRef.current, canvasBRef.current, 1);
