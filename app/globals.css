@@ -54,6 +54,15 @@
      Misma curva "expo-out" que el sistema de Framer Motion (components/motion.ts).
      Unifica el feel de los hovers en CSS con las entradas animadas. */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* --- Hero: encuadre del arte ---
+     Todo el arte del hero comparte el mismo encuadre 16:9 (hero_1.png y los
+     dos .mp4 del morph), asi que una sola medida define el tamano al que se
+     renderiza en TODAS las capas. Ver el bloque .hero-media mas abajo. */
+  --hero-aspect: 1.7778;
+  /* landscape: equivale exactamente al object-fit: cover de siempre */
+  --hero-art-w: max(100vw, calc(100vh * var(--hero-aspect)));
+  --hero-art-h: calc(var(--hero-art-w) / var(--hero-aspect));
 }
 
 * {
@@ -518,49 +527,86 @@ h6,
   box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.7);
 }
 
-/* ---- Capas de media del hero (imagenes + videos a pantalla completa) ----
+/* ---- Capas de media del hero (imagenes + videos) ----
 
-   El arte del hero es 16:9 apaisado. Con object-fit: cover en un telefono
-   vertical (390x844) la escala la manda el alto, el render sale ~1500px de
-   ancho y se recorta el 74% — la composicion queda irreconocible, que es
-   justamente el "no se ve el hero en el celular".
+   Las seis capas del hero — hero_1.png, sus dos copias difuminadas (bloom y
+   halo), los dos videos del morph y hero_3.png — son recortes del MISMO
+   encuadre 16:9. Para que el morph se lea como una sola toma continua, todas
+   tienen que renderizar el arte exactamente al mismo tamano: si cada capa
+   elige su propio ajuste, en el crossfade el arte pega un salto de escala.
 
-   El arreglo NO puede ser el mismo para todas las capas, porque depende del
-   fondo del asset:
+   Eso es justo lo que pasaba en vertical. hero_1 iba con object-fit: cover, y
+   en cover la escala la manda el eje mas apretado: en un telefono de 390x844
+   manda el ALTO, el arte sale 1500px de ancho y se recorta el 74% — del
+   estallido solo quedaba el nucleo blanco reventado ocupando toda la
+   pantalla. Los videos, en cambio, iban con contain sobre una caja ensanchada
+   al 180%, donde manda el ANCHO: 702px de arte. Resultado en el celular: el
+   estallido aparecia 2.1x mas grande que el video que lo continua (el morph
+   "explotaba" de escala en el crossfade), y el video ademas quedaba recortado
+   de los costados y con su banda visible a media pantalla.
 
-   - hero_1.png tiene bordes que no son negros (hasta rgb(13,36,106)). Con
-     mix-blend-mode: screen eso aclara el fondo, asi que si se lo encuadra con
-     contain se ve el rectangulo de la imagen recortado contra el navy. Ademas
-     es un estallido a sangre: recortado sigue leyendose. Se queda con cover.
+   Ahora hay una sola medida, --hero-art-w, y la caja de cada capa se
+   dimensiona con ella y con --hero-aspect. Al tener la caja la proporcion
+   exacta del asset, el object-fit deja de decidir nada: el arte se mapea 1:1 y
+   todas las capas coinciden pixel a pixel.
 
-   - Los videos del morph van sobre negro puro, y su composicion es un cluster
-     compacto y centrado — justo lo que cover destruye. Van con contain
-     (.hero-media-fit): el letterbox es invisible porque screen contra negro
-     es la identidad. */
+   El centrado va por margin negativo y no por translate(-50%, -50%): estas
+   capas ya llevan transform inline de framer-motion (scale/rotate) y un
+   transform del stylesheet seria pisado. */
 .hero-media {
   position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 50%;
+  left: 50%;
+  width: var(--hero-art-w);
+  height: var(--hero-art-h);
+  margin-left: calc(var(--hero-art-w) / -2);
+  margin-top: calc(var(--hero-art-h) / -2);
+  /* la guarda global `img, video { max-width: 100% }` clamparia la caja al
+     ancho del viewport. Esta capa es fixed y pointer-events: none, no puede
+     empujar el layout. */
+  max-width: none;
   object-fit: cover;
 }
 
-/* Viewport vertical: el cluster de los videos entra entero.
-   La caja se ensancha al 180% (centrada con left: -40%) en vez de escalar con
-   transform, porque estas capas ya llevan transform inline de framer-motion y
-   un transform del stylesheet seria pisado. Ensanchar la caja hace que
-   contain calcule una escala mayor y el cluster llene mas pantalla; lo que
-   queda afuera son los margenes negros del encuadre, no la composicion. */
+/* ---- Viewport vertical ----
+   La escala pasa a mandarla el ancho. El arte queda como una franja 16:9
+   centrada de la que se ve el 56% del ancho, en vez del 26% que dejaba cover;
+   el campo de estrellas ocupa el resto de la pantalla, que es exactamente el
+   fondo de la escena. */
 @media (max-aspect-ratio: 1 / 1) {
-  .hero-media-fit {
-    left: -40%;
-    right: auto;
-    width: 180%;
-    /* la guarda global `img, video { max-width: 100% }` clampeaba el 180% a
-       100% y dejaba la capa corrida a la izquierda sin ensanchar. Esta capa
-       es fixed y pointer-events: none, no puede empujar el layout. */
-    max-width: none;
-    object-fit: contain;
+  :root {
+    /* 1.8 = el encuadre desborda 22% por lado. Es el punto de equilibrio: con
+       menos zoom la estrella queda flotando chiquita en el medio de la
+       pantalla, y con mas se empieza a comer el cuerpo. Asi solo se van de
+       cuadro las puntas de los brazos — que en desktop tampoco entran del
+       todo — y el cuerpo de la estrella se ve entero, que es justo lo que
+       cover destruia. */
+    --hero-art-w: calc(100vw * 1.8);
+  }
+
+  /* Difuminado de los bordes horizontales de la franja.
+     hero_1.png no termina en negro: el borde superior llega a rgb(9,34,100) y
+     un brazo del estallido sale a 207. Con mix-blend-mode: screen sobre el
+     navy del body ese corte se ve como un rectangulo. En apaisado el borde
+     cae fuera de pantalla y el problema no existe; aca se disuelve con
+     mascara, asi el arte se funde con el campo de estrellas.
+     Los videos van sobre negro puro (screen contra negro es la identidad),
+     pero la mascara tampoco les quita nada visible. */
+  .hero-media {
+    --hero-fade: linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 28%,
+      #000 72%,
+      transparent 100%
+    );
+    -webkit-mask-image: var(--hero-fade);
+    mask-image: var(--hero-fade);
+    /* no-repeat explicito: el default es repeat, y las capas de bloom/halo
+       llevan blur(28px)/blur(80px), cuya tinta desborda la caja — con repeat
+       el degrade se azulejaba sobre ese desborde y salian bandas. */
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
   }
 }
 

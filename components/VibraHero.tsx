@@ -24,6 +24,7 @@ const ramp = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
 
 // vuelo de hero_3 hacia el boton del header
 const CLUSTER_SIZE = 48; // px — tamano final del logo
+const CLUSTER_ASPECT = 4096 / 2293; // proporcion de hero_3.png
 // posicion: sale rapido y sobrepasa apenas el destino antes de acoplarse
 const flyEase = cubicBezier(0.3, 1.18, 0.32, 1);
 // escala: encoge rapido al principio y asienta suave
@@ -85,8 +86,20 @@ export default function VibraHero() {
   // queda desfasada al tocar el header.
   const [dock, setDock] = useState({ left: 0, top: 47 });
 
+  // Ancho al que se renderiza el arte del hero, en px. Lo define --hero-art-w
+  // en globals.css (una sola medida para las seis capas, ver el bloque
+  // .hero-media). Se lee de la caja ya maquetada de un video en vez de
+  // reimplementar la formula aca: si el breakpoint cambia, esto la sigue sola.
+  // offsetWidth y no getBoundingClientRect: da el ancho de layout, sin el
+  // transform inline de framer-motion.
+  const artW = useRef(0);
+
   useEffect(() => {
     const measure = () => {
+      artW.current =
+        videoBRef.current?.offsetWidth ||
+        Math.max(window.innerWidth, (window.innerHeight * 16) / 9);
+
       const header = document.querySelector<HTMLElement>(".header");
       const toggle = document.querySelector<HTMLElement>(".nav-toggle");
       const cta = document.querySelector<HTMLElement>(".nav-cta");
@@ -195,8 +208,13 @@ export default function VibraHero() {
   // sin sumar una onda nueva, asi el vacio se expande cuando la luz brilla —
   // literalmente la luz empujando el espacio. Bajo prefers-reduced-motion
   // haloPulse ya es constante, asi que el hueco queda quieto solo.
-  const starsVoid = useTransform(haloPulse, (b) => 52 + 10 * clamp01(b));
-  const starsMask = useMotionTemplate`radial-gradient(circle ${starsVoid}vmin at 53% 48%, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.55) 60%, #000 100%)`;
+  //
+  // El radio va como fraccion de --hero-art-w, no en vmin: el hueco tiene que
+  // seguir al tamano del estallido, y en vertical el estallido ya no ocupa la
+  // pantalla entera. Con vmin el hueco quedaba enorme al lado del arte y el
+  // campo de estrellas desaparecia de medio hero.
+  const starsVoid = useTransform(haloPulse, (b) => 0.29 + 0.06 * clamp01(b));
+  const starsMask = useMotionTemplate`radial-gradient(circle calc(var(--hero-art-w) * ${starsVoid}) at 53% 48%, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.55) 60%, #000 100%)`;
 
   // ---- video A: estallido -> estrellas dispersas -> hero_2 ----
   const videoAOpacity = useTransform(
@@ -263,8 +281,14 @@ export default function VibraHero() {
     if (p >= 0.6) {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      // escala inicial: cubre 110vmin, igual que el frame final del video B
-      const startScale = (1.1 * Math.min(w, h)) / CLUSTER_SIZE;
+      // Escala inicial: hero_3 tiene que empalmar con el frame final del video
+      // B, asi que arranca del mismo encuadre (--hero-art-w) y no de una
+      // medida propia. Es una caja cuadrada de CLUSTER_SIZE con object-fit:
+      // cover, asi que el arte que rinde mide lado * CLUSTER_ASPECT; se
+      // despeja la escala que iguala ese ancho al del encuadre, con el mismo
+      // +10% de sobredimension que ya tenia en desktop.
+      const startScale =
+        (artW.current * 1.1) / (CLUSTER_SIZE * CLUSTER_ASPECT);
       clusterScale.set(startScale + (1 - startScale) * shrinkEase(f));
       clusterDX.set((w / 2 - dock.left) * (1 - flyEase(f)));
       clusterDY.set((h / 2 - dock.top) * (1 - flyEase(f)));
@@ -397,7 +421,7 @@ export default function VibraHero() {
         muted
         playsInline
         preload="auto"
-        className="hero-media hero-media-fit"
+        className="hero-media"
         style={{ ...fullscreenMedia, opacity: videoAOpacity }}
       />
 
@@ -409,7 +433,7 @@ export default function VibraHero() {
         muted
         playsInline
         preload="auto"
-        className="hero-media hero-media-fit"
+        className="hero-media"
         style={{ ...fullscreenMedia, opacity: videoBOpacity }}
       />
 
