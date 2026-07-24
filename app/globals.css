@@ -1758,11 +1758,14 @@ h6,
   gap: 1rem;
 }
 
+/* Sin overflow:hidden: recortaba el glow de .border-glow, que por diseno se
+   dibuja por fuera de la card (.edge-light usa un inset negativo). El clip que
+   necesita el acordeon mientras anima la altura ya lo hace
+   .faq-answer-wrapper con su propio overflow:hidden. */
 .faq-item {
   background: rgba(var(--foreground-rgb), 0.03);
   border: 1px solid rgba(var(--foreground-rgb), 0.1);
   border-radius: var(--radius-md);
-  overflow: hidden;
   transition: border-color 0.3s var(--ease-out),
     background-color 0.3s var(--ease-out);
 }

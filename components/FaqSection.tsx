@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
+import { useBorderGlow } from "./useBorderGlow";
 
 // FAQ en formato acordeón funcional (abrir/cerrar con estado).
 // Las preguntas se usan como key del map: tienen que ser únicas entre sí.
@@ -37,6 +38,70 @@ const faqs = [
   },
 ];
 
+// Cada item es su propio componente porque useBorderGlow es un hook y no se
+// puede llamar dentro del .map(). Mismo efecto de borde que la franja de
+// Vibra Care. El estado de abierto/cerrado lo sigue manejando el padre, asi
+// que solo puede haber uno abierto a la vez.
+function FaqItem({
+  faq,
+  index,
+  isOpen,
+  onToggle,
+}: {
+  faq: (typeof faqs)[number];
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const glow = useBorderGlow<HTMLDivElement>();
+
+  return (
+    <motion.div
+      ref={glow.ref}
+      {...glow.handlers}
+      variants={fadeItem}
+      className={`faq-item border-glow ${isOpen ? "faq-item-open" : ""}`}
+    >
+      <span className="edge-light" aria-hidden />
+      <button
+        type="button"
+        id={`faq-trigger-${index}`}
+        className="faq-question font-heading"
+        aria-expanded={isOpen}
+        aria-controls={`faq-panel-${index}`}
+        onClick={onToggle}
+      >
+        <span>{faq.question}</span>
+        <motion.span
+          className="faq-icon"
+          animate={{ rotate: isOpen ? 45 : 0 }}
+          transition={{ duration: 0.25 }}
+          aria-hidden
+        >
+          +
+        </motion.span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            className="faq-answer-wrapper"
+            id={`faq-panel-${index}`}
+            role="region"
+            aria-labelledby={`faq-trigger-${index}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <p className="faq-answer">{faq.answer}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 export default function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -68,52 +133,15 @@ export default function FaqSection() {
         whileInView="show"
         viewport={viewportOnce}
       >
-        {faqs.map((faq, index) => {
-          const isOpen = openIndex === index;
-          return (
-            <motion.div
-              key={faq.question}
-              variants={fadeItem}
-              className={`faq-item ${isOpen ? "faq-item-open" : ""}`}
-            >
-              <button
-                type="button"
-                id={`faq-trigger-${index}`}
-                className="faq-question font-heading"
-                aria-expanded={isOpen}
-                aria-controls={`faq-panel-${index}`}
-                onClick={() => toggle(index)}
-              >
-                <span>{faq.question}</span>
-                <motion.span
-                  className="faq-icon"
-                  animate={{ rotate: isOpen ? 45 : 0 }}
-                  transition={{ duration: 0.25 }}
-                  aria-hidden
-                >
-                  +
-                </motion.span>
-              </button>
-
-              <AnimatePresence initial={false}>
-                {isOpen && (
-                  <motion.div
-                    className="faq-answer-wrapper"
-                    id={`faq-panel-${index}`}
-                    role="region"
-                    aria-labelledby={`faq-trigger-${index}`}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                  >
-                    <p className="faq-answer">{faq.answer}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          );
-        })}
+        {faqs.map((faq, index) => (
+          <FaqItem
+            key={faq.question}
+            faq={faq}
+            index={index}
+            isOpen={openIndex === index}
+            onToggle={() => toggle(index)}
+          />
+        ))}
       </motion.div>
     </section>
   );

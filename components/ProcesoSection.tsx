@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
+import { useBorderGlow } from "./useBorderGlow";
 
 // Sección "Cómo trabajamos": pasos del servicio en orden.
 // El orden del array define el orden visual y la numeración.
@@ -32,6 +33,36 @@ const steps = [
   },
 ];
 
+// Cada paso es su propio componente porque useBorderGlow es un hook: no se
+// puede llamar dentro del .map(). Mismo efecto que la franja de Vibra Care —
+// borde que orbita en reposo y sigue al cursor al pasar por encima.
+function ProcessStep({
+  step,
+  index,
+}: {
+  step: (typeof steps)[number];
+  index: number;
+}) {
+  const glow = useBorderGlow<HTMLDivElement>();
+
+  return (
+    <motion.div
+      ref={glow.ref}
+      {...glow.handlers}
+      variants={fadeItem}
+      className="process-step border-glow"
+    >
+      {/* Va absolute, asi que no ocupa lugar en el flex de la card. */}
+      <span className="edge-light" aria-hidden />
+      <span className="process-step-number font-heading">
+        {String(index + 1).padStart(2, "0")}
+      </span>
+      <h3 className="process-step-title font-heading">{step.title}</h3>
+      <p className="process-step-desc">{step.description}</p>
+    </motion.div>
+  );
+}
+
 export default function ProcesoSection() {
   return (
     <section className="section" id="proceso">
@@ -60,17 +91,7 @@ export default function ProcesoSection() {
         viewport={viewportOnce}
       >
         {steps.map((step, index) => (
-          <motion.div
-            key={step.title}
-            variants={fadeItem}
-            className="process-step"
-          >
-            <span className="process-step-number font-heading">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <h3 className="process-step-title font-heading">{step.title}</h3>
-            <p className="process-step-desc">{step.description}</p>
-          </motion.div>
+          <ProcessStep key={step.title} step={step} index={index} />
         ))}
       </motion.div>
     </section>
