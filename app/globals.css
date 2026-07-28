@@ -61,13 +61,17 @@
      renderiza en TODAS las capas. Ver el bloque .hero-media mas abajo. */
   --hero-aspect: 1.7778;
   /* landscape: equivale exactamente al object-fit: cover de siempre */
+  /* svh y no vh, por lo mismo que el top de .hero-media: con vh el encuadre se
+     redimensiona cuando Safari colapsa sus barras, en pleno scroll */
   --hero-art-w: max(100vw, calc(100vh * var(--hero-aspect)));
+  --hero-art-w: max(100vw, calc(100svh * var(--hero-aspect)));
   --hero-art-h: calc(var(--hero-art-w) / var(--hero-aspect));
   /* Encuadre de las capas de LUZ (bloom y halo difuminados): siempre cover.
      En landscape coincide con --hero-art-w; en vertical NO se achica a la
      franja como el arte nitido, porque su trabajo es banar toda la pantalla
      con el resplandor de la estrella (ver .hero-media-glow). */
   --hero-glow-w: max(100vw, calc(100vh * var(--hero-aspect)));
+  --hero-glow-w: max(100vw, calc(100svh * var(--hero-aspect)));
   --hero-glow-h: calc(var(--hero-glow-w) / var(--hero-aspect));
 }
 
@@ -300,8 +304,26 @@ h6,
   50% { transform: translateY(6px); opacity: 1; }
 }
 
+/* Anclaje del titulo del hero. Fixed y no centrado dentro del sticky: comparte
+   el sistema de coordenadas con las capas .hero-media, que tambien son fixed.
+   Ver el comentario largo en VibraHero (vh grande vs area visible en iOS). */
+.hero-title-anchor {
+  position: fixed;
+  /* mismo anclaje estable que .hero-media: si el titulo usara % y el arte svh,
+     volverian a separarse cada vez que Safari mueve sus barras */
+  top: 50%;
+  top: 50svh;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  /* el titulo no intercepta gestos: el hero se maneja con scroll */
+  pointer-events: none;
+}
+
 .scroll-hint {
-  position: absolute;
+  /* fixed por el mismo motivo que .hero-title-anchor: con position:absolute
+     dentro del contenedor de 100vh quedaba abajo del fold en el telefono */
+  position: fixed;
   bottom: 2.2rem;
   left: 50%;
   transform: translateX(-50%);
@@ -623,7 +645,15 @@ h6,
    transform del stylesheet seria pisado. */
 .hero-media {
   position: fixed;
+  /* svh y no %: un elemento fixed resuelve top:% contra el area VISIBLE, y en
+     el telefono esa area cambia cada vez que Safari colapsa o despliega sus
+     barras — que es justo lo que pasa al scrollear rapido. Con top:50% toda la
+     escena pegaba un salto vertical en pleno scroll (el "se rompe"). svh es el
+     viewport chico, un valor fijo que no depende del estado de las barras, asi
+     que la escena queda quieta. El fallback en % queda para navegadores sin
+     svh; ahi el comportamiento es el de antes. */
   top: 50%;
+  top: 50svh;
   left: 50%;
   width: var(--hero-art-w);
   height: var(--hero-art-h);
@@ -685,12 +715,29 @@ h6,
   }
 
   .hero-media {
+    /* Fade SUAVIZADO, no lineal. Un linear-gradient llega a transparente con
+       pendiente constante y despues corta seco: en el punto donde arranca la
+       rampa la luminancia pasa de plana a subir de golpe, y aunque no hay
+       ningun escalon el ojo lee ese quiebre de pendiente como un borde (banda
+       de Mach). Sobre un fondo oscuro y parejo como este se nota mucho: es el
+       "marco" arriba y abajo de la franja.
+       Los stops de abajo aproximan un smoothstep (t^2*(3-2t)), que entra y
+       sale con pendiente cero, asi el arte se disuelve en el campo de
+       estrellas sin que se pueda ubicar donde termina. Misma extension que
+       antes (28%/72%): no se pierde nada de la estrella, solo cambia la forma
+       de la curva. */
     --hero-fade: linear-gradient(
       to bottom,
-      transparent 0%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.16) 7%,
+      rgba(0, 0, 0, 0.5) 14%,
+      rgba(0, 0, 0, 0.84) 21%,
       #000 28%,
       #000 72%,
-      transparent 100%
+      rgba(0, 0, 0, 0.84) 79%,
+      rgba(0, 0, 0, 0.5) 86%,
+      rgba(0, 0, 0, 0.16) 93%,
+      rgba(0, 0, 0, 0) 100%
     );
     -webkit-mask-image: var(--hero-fade);
     mask-image: var(--hero-fade);
@@ -720,12 +767,19 @@ h6,
     /* mismo centrado geometrico que el arte, con su propia caja */
     margin-left: calc(var(--hero-glow-w) / -2);
     margin-top: calc(var(--hero-glow-h) / -2);
+    /* mismo smoothstep que el arte, sobre su propia caja (mas alta) */
     --hero-fade: linear-gradient(
       to bottom,
-      transparent 0%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.16) 7.5%,
+      rgba(0, 0, 0, 0.5) 15%,
+      rgba(0, 0, 0, 0.84) 22.5%,
       #000 30%,
       #000 70%,
-      transparent 100%
+      rgba(0, 0, 0, 0.84) 77.5%,
+      rgba(0, 0, 0, 0.5) 85%,
+      rgba(0, 0, 0, 0.16) 92.5%,
+      rgba(0, 0, 0, 0) 100%
     );
   }
 

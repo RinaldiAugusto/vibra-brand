@@ -124,11 +124,25 @@ export default function VibraHero() {
   // transform inline de framer-motion.
   const artW = useRef(0);
 
+  // Centro en pantalla del encuadre del arte. Es de donde tiene que despegar
+  // el vuelo de hero_3 para empalmar con el frame final del video B.
+  // Se MIDE de la caja del canvas en vez de asumir window.innerHeight / 2:
+  // las capas se anclan con svh (ver .hero-media en globals.css) y
+  // window.innerHeight es el viewport dinamico, asi que cuando Safari mueve
+  // sus barras los dos valores dejan de coincidir y el cluster arrancaba
+  // desplazado respecto del arte con el que tiene que empalmar.
+  const artCenter = useRef({ x: 0, y: 0 });
+
   useEffect(() => {
     const measure = () => {
+      const cb = canvasBRef.current;
       artW.current =
-        canvasBRef.current?.offsetWidth ||
+        cb?.offsetWidth ||
         Math.max(window.innerWidth, (window.innerHeight * 16) / 9);
+      if (cb) {
+        const r = cb.getBoundingClientRect();
+        artCenter.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
 
       const header = document.querySelector<HTMLElement>(".header");
       const toggle = document.querySelector<HTMLElement>(".nav-toggle");
@@ -528,10 +542,17 @@ export default function VibraHero() {
         let g = fadeGrads.current[slot];
         if (!g) {
           g = ctx.createLinearGradient(0, 0, 0, h);
-          g.addColorStop(0, "rgba(0,0,0,1)");
-          g.addColorStop(0.26, "rgba(0,0,0,0)");
-          g.addColorStop(0.74, "rgba(0,0,0,0)");
-          g.addColorStop(1, "rgba(0,0,0,1)");
+          // Los stops siguen un smoothstep, no una rampa lineal: se pinta con
+          // destination-out, asi que el alfa de cada stop es cuanto se BORRA.
+          // Con la rampa lineal el borrado terminaba con pendiente constante y
+          // el quiebre se leia como una linea horizontal — el mismo "marco"
+          // que se corrigio en las mascaras CSS de globals.css.
+          for (const [t, keep] of [
+            [0, 0], [0.065, 0.156], [0.13, 0.5], [0.195, 0.844], [0.26, 1],
+            [0.74, 1], [0.805, 0.844], [0.87, 0.5], [0.935, 0.156], [1, 0],
+          ] as [number, number][]) {
+            g.addColorStop(t, `rgba(0,0,0,${(1 - keep).toFixed(3)})`);
+          }
           fadeGrads.current[slot] = g;
         }
         ctx.globalCompositeOperation = "destination-out";
@@ -552,8 +573,9 @@ export default function VibraHero() {
     // dockeada, asi un flick rapido que saltee la ventana no deja el logo
     // clavado a mitad de vuelo. El costo es trivial (unas ops + sets).
     if (p >= 0.6) {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      // centro MEDIDO del encuadre (ver artCenter), no window.innerHeight / 2
+      const cx = artCenter.current.x || window.innerWidth / 2;
+      const cy = artCenter.current.y || window.innerHeight / 2;
       // Escala inicial: hero_3 tiene que empalmar con el frame final del video
       // B, asi que arranca del mismo encuadre (--hero-art-w) y no de una
       // medida propia. Es una caja cuadrada de CLUSTER_SIZE con object-fit:
@@ -569,14 +591,13 @@ export default function VibraHero() {
       // la misma PROPORCION, que es como el ojo lee una escala. Los extremos
       // no se mueven: f=0 -> startScale, f=1 -> 1.
       clusterScale.set(Math.pow(startScale, 1 - shrinkEase(f)));
-      // El vuelo arranca en el centro exacto del viewport, que es donde queda
-      // el encuadre de las capas .hero-media (centrado geometrico en los dos
-      // breakpoints), asi que empalma con el frame final del video B sin
-      // saltar. Habia un par de offsets aca que replicaban el corrimiento
-      // 53%/48% que tenia el CSS en vertical; al sacarlo de globals.css
-      // dejaban al cluster arrancando 5% a la izquierda del centro.
-      clusterDX.set((w / 2 - dock.left) * (1 - flyEase(f)));
-      clusterDY.set((h / 2 - dock.top) * (1 - flyEase(f)));
+      // El vuelo arranca en el centro del encuadre, que es donde queda el
+      // frame final del video B, asi que empalma sin saltar. Habia un par de
+      // offsets aca que replicaban el corrimiento 53%/48% que tenia el CSS en
+      // vertical; al sacarlo de globals.css dejaban al cluster arrancando 5%
+      // a la izquierda del centro.
+      clusterDX.set((cx - dock.left) * (1 - flyEase(f)));
+      clusterDY.set((cy - dock.top) * (1 - flyEase(f)));
     }
 
     // Giro continuo del logo dockeado (4 s/vuelta) + whoosh en pleno vuelo.
@@ -862,35 +883,48 @@ export default function VibraHero() {
             position: "sticky",
             top: 0,
             height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
             overflow: "hidden",
           }}
         >
-          <motion.div
-            style={{
-              position: "relative",
-              opacity: titleOpacity,
-              y: titleY,
-              scale: titleScale,
-              textAlign: "center",
-            }}
-          >
-            <h1 className="wordmark">
-              <Image
-                className="wordmark-img"
-                src="/vibra-logo-dark.png"
-                alt="Vibra"
-                width={1975}
-                height={954}
-                priority
-                quality={100}
-              />
-            </h1>
-            <p className="tagline tagline-pulse">Agencia de IA</p>
-          </motion.div>
+          {/* El titulo NO se centra dentro de este sticky: se ancla al viewport
+              con position: fixed, igual que las capas del arte.
+
+              El sticky mide 100vh, y en Safari de iPhone vh es el viewport
+              GRANDE (el de las barras ocultas), mientras que un elemento fixed
+              se posiciona contra el area realmente VISIBLE. Centrando el
+              wordmark adentro del sticky quedaba en lvh/2 y la estrella —que es
+              fixed— en svh/2: con las barras desplegadas el logo aparecia unos
+              40px mas abajo que el nucleo de la estrella. En desktop los dos
+              valores coinciden y por eso no se veia.
+
+              Anclando el titulo con el MISMO mecanismo que el arte, los dos
+              caen en el mismo punto sea cual sea la definicion de viewport que
+              use el navegador. Por lo mismo el scroll hint pasa a fixed: con
+              bottom sobre un contenedor de 100vh se iba abajo del fold. */}
+          <div className="hero-title-anchor">
+            <motion.div
+              style={{
+                position: "relative",
+                opacity: titleOpacity,
+                y: titleY,
+                scale: titleScale,
+                textAlign: "center",
+              }}
+            >
+              <h1 className="wordmark">
+                <Image
+                  className="wordmark-img"
+                  src="/vibra-logo-dark.png"
+                  alt="Vibra"
+                  width={1975}
+                  height={954}
+                  priority
+                  quality={100}
+                />
+              </h1>
+              <p className="tagline tagline-pulse">Agencia de IA</p>
+            </motion.div>
+          </div>
 
           <motion.div className="scroll-hint" style={{ opacity: hintOpacity }}>
             <span>Scroll</span>
