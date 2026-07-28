@@ -217,6 +217,44 @@ h6,
   display: none;
 }
 
+/* ---- hero_3: el cluster que vuela al header ----
+   Es la unica capa del hero que quedaba apoyada en "el arte termina en negro y
+   el blend screen lo hace invisible". Esa premisa se cumple en Chrome y en
+   WebKit de escritorio (medido: el escalon de luminancia en el borde de la
+   caja es de 0.3/255, o sea nada), pero NO en Safari de iPhone: la capa lleva
+   will-change: transform y ademas se anima, asi que iOS la promueve a un plano
+   de composicion propio y ahi ignora el mix-blend-mode — el cuadrado casi
+   negro se pinta opaco encima del campo de estrellas y aparecen sus bordes
+   rectos arriba y abajo. Es el mismo "marco" que ya aparecio con los <video>
+   y con los <canvas> del morph (ver draw() en VibraHero); a esos se les
+   horneo el alfa por la misma razon.
+
+   En vertical se ve y en desktop no porque ahi el cuadrado arranca mas grande
+   que el viewport (escala ~20 contra ~9) y sus bordes caen fuera de pantalla.
+
+   La solucion no depende del blend: los pixeles del borde pasan a ser
+   REALMENTE transparentes. Radial y no lineal por dos motivos: la capa gira
+   sin parar, y un circulo es invariante a la rotacion (una mascara lineal
+   giraria con ella); y ademas asi se disuelven los cuatro lados, no solo dos.
+
+   El 72% sale de medir el arte: todo el cluster vive dentro del 74% del
+   semiancho de la caja y del 78% para afuera es negro puro, asi que el
+   degrade cae entero sobre pixeles vacios y no recorta ni una punta de
+   estrella. closest-side = el semiancho, o sea que llega a alfa 0 justo en el
+   borde recto de la caja, que es el que se veia. */
+.hero-cluster {
+  --hero-cluster-fade: radial-gradient(
+    circle closest-side at 50% 50%,
+    #000 0%,
+    #000 72%,
+    transparent 100%
+  );
+  -webkit-mask-image: var(--hero-cluster-fade);
+  mask-image: var(--hero-cluster-fade);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
 /* ---- Wordmark ---- */
 .wordmark {
   position: relative;
@@ -340,7 +378,11 @@ h6,
    fijo del hero, que se desvanece solo por su propia opacidad. ---- */
 .hero-lamp-gap {
   width: 100%;
-  height: 37vh;
+  /* Calzado con el alto de la seccion del hero (300vh, ver VibraHero): la lamp
+     asoma por abajo en scrollY = 300vh + gap - 100vh. Con 40vh eso cae en
+     240vh = p 0.80, o sea justo cuando el cluster termina de acoplarse al
+     header. Menos gap y la lamp entra en pleno vuelo. */
+  height: 40vh;
 }
 
 /* ---- Lamp effect (adaptado de Aceternity UI a CSS plano) ---- */
@@ -625,14 +667,14 @@ h6,
      Los videos van sobre negro puro (screen contra negro es la identidad),
      pero la mascara tampoco les quita nada visible.
 
-     El centrado usa 53%/48% en vez de 50%/50%: el nucleo de luz del
-     estallido cae en ese punto del encuadre, no en el centro geometrico. En
-     desktop la pantalla muestra casi todo el encuadre y no se nota, pero en
-     el celular el recorte es agresivo y con -50%/-50% la estrella quedaba
-     corrida arriba-derecha del logo. Asi el nucleo cae exactamente detras
-     del wordmark, como en desktop. Se corren TODAS las capas por igual para
-     no romper la continuidad del morph (el vuelo de hero_3 compensa este
-     mismo corrimiento en el rAF). */
+     El encuadre va centrado geometrico (-50%/-50%, heredado del bloque base),
+     igual que en desktop. Hubo una version que lo corria a 53%/48% apuntando
+     al centroide de luminancia del estallido, pero ese centroide esta sesgado
+     por el brazo que sale hacia arriba a la derecha: el punto que la
+     composicion de desktop pone debajo del wordmark es el centro del ENCUADRE
+     (medido: el wordmark cae en 50.0%/47.8% del arte en desktop). Con el
+     corrimiento portrait caia en 51.9%/46.2% — el logo desplazado respecto de
+     la estrella, que es justo lo que se veia mal en el celular. */
   /* Los canvas del morph NO usan mask-image: el fade va horneado en el alfa
      del canvas (ver draw() en VibraHero). En iOS mask-image + mix-blend-mode
      sobre un canvas pintaba el negro del video como un rectangulo opaco — el
@@ -643,8 +685,6 @@ h6,
   }
 
   .hero-media {
-    margin-left: calc(var(--hero-art-w) * -0.53);
-    margin-top: calc(var(--hero-art-h) * -0.48);
     --hero-fade: linear-gradient(
       to bottom,
       transparent 0%,
@@ -677,8 +717,9 @@ h6,
   .hero-media-glow {
     width: var(--hero-glow-w);
     height: var(--hero-glow-h);
-    margin-left: calc(var(--hero-glow-w) * -0.53);
-    margin-top: calc(var(--hero-glow-h) * -0.48);
+    /* mismo centrado geometrico que el arte, con su propia caja */
+    margin-left: calc(var(--hero-glow-w) / -2);
+    margin-top: calc(var(--hero-glow-h) / -2);
     --hero-fade: linear-gradient(
       to bottom,
       transparent 0%,

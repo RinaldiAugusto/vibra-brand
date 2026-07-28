@@ -25,10 +25,17 @@ const ramp = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
 // vuelo de hero_3 hacia el boton del header
 const CLUSTER_SIZE = 48; // px — tamano final del logo
 const CLUSTER_ASPECT = 4096 / 2293; // proporcion de hero_3.png
-// posicion: sale rapido y sobrepasa apenas el destino antes de acoplarse
-const flyEase = cubicBezier(0.3, 1.18, 0.32, 1);
-// escala: encoge rapido al principio y asienta suave
-const shrinkEase = cubicBezier(0.25, 0.9, 0.3, 1);
+// Posicion: sale rapido y sobrepasa apenas el destino antes de acoplarse.
+// El pico de 1.05 en el control point da ese overshoot (llega a 1.004 del
+// recorrido y vuelve), pero el x1 mas alto es lo que importa: con la curva
+// anterior (0.3, 1.18, 0.32, 1) el tramo visible del vuelo — del 10% al 90%
+// del recorrido — duraba el 29% de la ventana, o sea unos 60px de scroll: no
+// se leia como un vuelo sino como un salto. Con esta dura el 46%.
+const flyEase = cubicBezier(0.4, 0.6, 0.3, 1.05);
+// Escala: mismo reparto, pero sin overshoot — pasarse aca haria que el logo
+// se achique por debajo de su tamano final y despues crezca, que se lee como
+// un rebote raro justo al acoplarse.
+const shrinkEase = cubicBezier(0.38, 0.55, 0.4, 1);
 
 /**
  * Hero scroll-driven, pinned — morph real entre 3 imagenes via video:
@@ -54,9 +61,18 @@ const shrinkEase = cubicBezier(0.25, 0.9, 0.3, 1);
  * mix-blend-mode: screen sobre fondo negro, sin wrappers con opacity para
  * que el negro desaparezca contra el fondo de la pagina.
  *
- * Ventanas de scroll (progreso p de la seccion pinned de 160vh; el pin se
- * suelta en p~0.58, asi que los morphs viven antes y hero_3 aterriza de
- * marca de agua justo cuando entra el contenido):
+ * Ventanas de scroll (progreso p de la seccion pinned de 300vh).
+ *
+ * El alto de la seccion NO es decorativo: con un sticky de 100vh adentro, el
+ * pin dura (alto - 100vh) y el rango de progreso es el alto entero, asi que
+ * se suelta en p = (alto - 100vh) / alto. A 160vh eso daba 0.375 — el video B
+ * entero y el vuelo corrian con el hero ya despegado, flotando fijos sobre la
+ * seccion siguiente mientras entraba. A 300vh da 0.667: los dos morphs viven
+ * completos dentro del pin y recien ahi se suelta, que es lo que este archivo
+ * asumia desde el principio. El gap hero->lamp (globals.css) esta calzado para
+ * que la lamp asome justo cuando el vuelo termina, en p=0.80.
+ *
+ * Ventanas:
  *   hero_1   [0    - 0.15]
  *   video A  [0.10 - 0.42]  scrub en [0.12, 0.36]
  *   video B  [0.38 - 0.66]  scrub en [0.44, 0.63]  (crossfade directo con A)
@@ -546,16 +562,21 @@ export default function VibraHero() {
       // +10% de sobredimension que ya tenia en desktop.
       const startScale =
         (artW.current * 1.1) / (CLUSTER_SIZE * CLUSTER_ASPECT);
-      // En vertical las capas .hero-media van corridas para centrar el
-      // nucleo de la estrella (margins -0.53/-0.48 en globals.css): el vuelo
-      // arranca desde ese mismo punto para empalmar con el frame final del
-      // video B sin saltar.
-      const portrait = portraitMV.get() === 1;
-      const bx = portrait ? -0.03 * artW.current : 0;
-      const by = portrait ? 0.02 * (artW.current / (16 / 9)) : 0;
-      clusterScale.set(startScale + (1 - startScale) * shrinkEase(f));
-      clusterDX.set((w / 2 + bx - dock.left) * (1 - flyEase(f)));
-      clusterDY.set((h / 2 + by - dock.top) * (1 - flyEase(f)));
+      // Escala en espacio logaritmico y no lineal. El recorrido es de ~20x a
+      // 1x: interpolando lineal, a mitad de la curva el cluster todavia mide
+      // 10x (se ve igual de gigante) y todo el encogido perceptible se apila
+      // en el ultimo tramo. Con potencias, cada paso de f cambia el tamano en
+      // la misma PROPORCION, que es como el ojo lee una escala. Los extremos
+      // no se mueven: f=0 -> startScale, f=1 -> 1.
+      clusterScale.set(Math.pow(startScale, 1 - shrinkEase(f)));
+      // El vuelo arranca en el centro exacto del viewport, que es donde queda
+      // el encuadre de las capas .hero-media (centrado geometrico en los dos
+      // breakpoints), asi que empalma con el frame final del video B sin
+      // saltar. Habia un par de offsets aca que replicaban el corrimiento
+      // 53%/48% que tenia el CSS en vertical; al sacarlo de globals.css
+      // dejaban al cluster arrancando 5% a la izquierda del centro.
+      clusterDX.set((w / 2 - dock.left) * (1 - flyEase(f)));
+      clusterDY.set((h / 2 - dock.top) * (1 - flyEase(f)));
     }
 
     // Giro continuo del logo dockeado (4 s/vuelta) + whoosh en pleno vuelo.
@@ -787,16 +808,31 @@ export default function VibraHero() {
       />
 
       {/* ---- hero_3: cluster girando rapido -> marca de agua ----
-           cuadrado centrado + object-fit cover: al girar, los bordes son
-           negros y el blend screen los hace invisibles */}
+           Cuadrado centrado + object-fit cover.
+
+           Va hero_3_soft.png, no hero_3.png: es el mismo arte con el alfa
+           horneado (alfa = smoothstep(1, 11, luminancia), mismas dimensiones
+           4096x2293 porque CLUSTER_ASPECT depende de ellas). El original
+           termina en negro y la capa se apoyaba en que el blend screen lo
+           hiciera desaparecer; con el alfa el negro directamente no existe,
+           asi que no depende de que el navegador respete el blend. Es neutral
+           donde el blend si funciona — screen contra negro ya era la identidad
+           — y es lo que evita el rectangulo opaco donde no funciona. Mismo
+           patron que hero_1_bloom.jpg / hero_1_halo.jpg y que el alfa horneado
+           de los canvas: en este proyecto lo que tiene que verse bien en el
+           telefono se hornea en el asset.
+
+           La mascara radial de .hero-cluster (globals.css) cubre aparte el
+           borde recto de la caja. */}
       <MotionImage
         aria-hidden
-        src="/hero_3.png"
+        src="/hero_3_soft.png"
         alt=""
         width={4096}
         height={2293}
         quality={90}
         sizes="110vmin"
+        className="hero-cluster"
         style={{
           position: "fixed",
           // destino medido del header (ver el efecto de `dock` arriba):
@@ -820,7 +856,7 @@ export default function VibraHero() {
       />
 
       {/* ---- Seccion hero: pinned ---- */}
-      <section ref={ref} style={{ position: "relative", height: "160vh", zIndex: 10 }}>
+      <section ref={ref} style={{ position: "relative", height: "300vh", zIndex: 10 }}>
         <div
           style={{
             position: "sticky",
