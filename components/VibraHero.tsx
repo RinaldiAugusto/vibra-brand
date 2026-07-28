@@ -19,6 +19,18 @@ import Galaxy from "./Galaxy";
 
 const MotionImage = motion.create(Image);
 
+// Opacidad maxima de la luz ambiente del morph (ver ambientLight). Calibrado
+// para que la franja deje de tener un borde ubicable sin que el fondo negro se
+// vuelva gris: por encima de ~0.3 la escena pierde profundidad.
+const AMBIENT_STRENGTH = 0.22;
+// Ventana de la luz ambiente. Entra mientras el arte se repliega a la franja
+// (que es cuando aparecen las bandas) y se va antes de que el cluster despegue
+// hacia el header. El gate del dibujo y el sobre de opacidad se derivan de
+// ESTAS constantes: si vivieran por separado, tocar una y olvidarse de la otra
+// dejaria la capa dibujando invisible o cortandose de golpe a la vista.
+const AMBIENT_IN: readonly [number, number] = [0.02, 0.12];
+const AMBIENT_OUT: readonly [number, number] = [0.6, 0.7];
+
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const ramp = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
 
@@ -95,6 +107,21 @@ export default function VibraHero() {
   // blend, mascara y opacity se respetan siempre.
   const canvasARef = useRef<HTMLCanvasElement>(null);
   const canvasBRef = useRef<HTMLCanvasElement>(null);
+  // Canvas de luz ambiente ("ambilight"): el mismo frame del morph dibujado a
+  // 32x18 px y estirado a pantalla completa por CSS. Ver el bloque de abajo.
+  const canvasLightRef = useRef<HTMLCanvasElement>(null);
+  const lightCtx = useRef<CanvasRenderingContext2D | null>(null);
+  // Canvas intermedios de la cadena de escalados, con su contexto ya resuelto:
+  // getContext() en cada frame es una busqueda que no hace falta repetir.
+  const lightChain = useRef<
+    { cv: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null }[] | null
+  >(null);
+  // Ultimo frame volcado a la luz. Mismo criterio que lastDrawnT de los canvas
+  // del morph: sin esto la cadena se recalculaba ~80 veces por segundo con el
+  // scroll quieto y el video en el mismo frame (medido).
+  const lastLightT = useRef(-1);
+  // Aspecto del viewport, cacheado. Lo actualiza measure() en cada resize.
+  const vpAspect = useRef(0.5);
   const ctxRefs = useRef<(CanvasRenderingContext2D | null)[]>([null, null]);
   const lastDrawnT = useRef<number[]>([-1, -1]);
   const fadeGrads = useRef<(CanvasGradient | null)[]>([null, null]);
@@ -143,6 +170,8 @@ export default function VibraHero() {
         const r = cb.getBoundingClientRect();
         artCenter.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       }
+      vpAspect.current =
+        window.innerWidth / Math.max(1, window.innerHeight);
 
       const header = document.querySelector<HTMLElement>(".header");
       const toggle = document.querySelector<HTMLElement>(".nav-toggle");
@@ -309,6 +338,22 @@ export default function VibraHero() {
   const bloomScale = useTransform(
     [burstScaleBase, bloomPulse],
     ([s, b]: number[]) => s * (1 + 0.05 * clamp01(b))
+  );
+
+  // Sobre de la luz ambiente. Arranca APAGADA: con la pagina quieta el arte
+  // todavia va con el zoom de entrada y cubre casi toda la pantalla, asi que
+  // no hay bandas que rellenar y el hero en reposo queda exactamente como
+  // estaba. Entra en [0.02, 0.12], que es mientras el arte se repliega a la
+  // franja y aparecen las bandas, y se va en [0.60, 0.70], antes de que el
+  // cluster despegue hacia el header.
+  const ambientLight = useTransform(
+    [scrollYProgress, portraitMV],
+    ([p, ptr]: number[]) =>
+      ptr
+        ? AMBIENT_STRENGTH *
+          ramp(p, ...AMBIENT_IN) *
+          (1 - ramp(p, ...AMBIENT_OUT))
+        : 0
   );
 
   // halo exterior: capa muy difuminada y lenta, desfasada del bloom, que
@@ -565,6 +610,83 @@ export default function VibraHero() {
     if (p >= 0.06 && p < 0.46) draw(videoARef.current, canvasARef.current, 0);
     if (p >= 0.34 && p < 0.68) draw(videoBRef.current, canvasBRef.current, 1);
 
+    // ---- Luz ambiente derivada del propio morph ----
+    // Se dibuja el frame vigente en un canvas de 32x18 que CSS estira a
+    // pantalla completa. El desenfoque no cuesta nada: lo hace el propio
+    // escalado del navegador al interpolar 32px a 390. Y como la capa cubre el
+    // viewport entero, no tiene bordes que se puedan ver — que es justo el
+    // problema que resuelve. El frame va estirado y no recortado a proposito:
+    // asi la luz llega arriba y abajo del todo, que es donde estaba el corte.
+    // Se dibuja solo dentro de la ventana en que la capa es visible: fuera de
+    // AMBIENT_IN[0]..AMBIENT_OUT[1] su opacidad es 0 y todo el trabajo se
+    // tiraria a la basura.
+    if (
+      portraitMV.get() === 1 &&
+      p > AMBIENT_IN[0] &&
+      p < AMBIENT_OUT[1]
+    ) {
+      const cv = canvasLightRef.current;
+      const usingA = p < 0.42;
+      const src = usingA ? videoARef.current : videoBRef.current;
+      const vpA = vpAspect.current;
+      // El stamp cubre las tres cosas que obligan a redibujar: que avance el
+      // frame, que se cambie de video (los dos pueden estar en el mismo
+      // currentTime) y que rote el telefono.
+      const stamp = src ? src.currentTime + (usingA ? 0 : 1e4) + vpA : -1;
+
+      if (cv && src && src.readyState >= 2 && lastLightT.current !== stamp) {
+        let ctx = lightCtx.current;
+        if (!ctx) {
+          ctx = cv.getContext("2d");
+          lightCtx.current = ctx;
+        }
+        if (!lightChain.current) {
+          lightChain.current = [24, 72].map((w) => {
+            const c = document.createElement("canvas");
+            c.width = w;
+            return { cv: c, ctx: c.getContext("2d") };
+          });
+        }
+        const [tiny, mid] = lightChain.current;
+        // Las tres capas siguen el aspecto del viewport. Si el bitmap tuviera
+        // otra proporcion, el estirado de CSS lo deformaria: el frame es 16:9
+        // y la pantalla del telefono ~0.46, o sea un estiron vertical de 3.85x
+        // que convertia cada mancha de luz en una barra vertical de punta a
+        // punta. Se veia claramente en el render.
+        for (const c of [tiny.cv, mid.cv, cv]) {
+          const h = Math.max(1, Math.round(c.width / vpA));
+          if (c.height !== h) c.height = h;
+        }
+        if (ctx) {
+          // Recorte "cover" del frame: se toma la parte central que respeta el
+          // aspecto de la pantalla, en vez de aplastar el frame entero. Asi la
+          // luz es el MISMO frame ampliado y desenfocado — su centro coincide
+          // con el de la franja y se derrama hacia arriba y abajo — y no una
+          // version deformada.
+          const vw = src.videoWidth || 1280;
+          const vh = src.videoHeight || 720;
+          const sw = Math.min(vw, vh * vpA);
+          const sh = Math.min(vh, vw / vpA);
+          const sx = (vw - sw) / 2;
+          const sy = (vh - sh) / 2;
+
+          // Cadena de escalados en vez de un solo salto 24 -> pantalla. Un
+          // upscale bilineal desde tan pocas muestras interpola LINEAL entre
+          // ellas, y el quiebre de pendiente en cada muestra se ve como bandas
+          // (medido: con un salto unico eran perfectamente visibles).
+          // Encadenando 24 -> 72 -> 288 cada pasada suaviza los quiebres de la
+          // anterior. Son canvas de pocos miles de pixeles: el costo es
+          // despreciable al lado de los draws de 1280x720 que ya hay.
+          tiny.ctx?.drawImage(
+            src, sx, sy, sw, sh, 0, 0, tiny.cv.width, tiny.cv.height
+          );
+          mid.ctx?.drawImage(tiny.cv, 0, 0, mid.cv.width, mid.cv.height);
+          ctx.drawImage(mid.cv, 0, 0, cv.width, cv.height);
+          lastLightT.current = stamp;
+        }
+      }
+    }
+
     const f = ramp(p, 0.66, 0.8);
 
     // Vuelo de hero_3: de pantalla completa al lado del boton. Se recalcula
@@ -675,6 +797,21 @@ export default function VibraHero() {
           rotationSpeed={0.03}
         />
       </motion.div>
+
+      {/* ---- luz ambiente del morph ----
+           Va justo despues del campo de estrellas y antes del arte: la baña
+           por encima (por eso se pierden algunas estrellas en las zonas
+           iluminadas) pero queda debajo de la animacion, que sigue nitida.
+           El bitmap es de 32x18 y CSS lo estira al viewport: ver .hero-light
+           en globals.css. */}
+      <motion.canvas
+        aria-hidden
+        ref={canvasLightRef}
+        width={288}
+        height={162}
+        className="hero-light"
+        style={{ opacity: ambientLight }}
+      />
 
       {/* ---- hero_1: estallido ---- */}
       <MotionImage
