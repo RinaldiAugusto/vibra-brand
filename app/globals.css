@@ -660,13 +660,24 @@ h6,
   max-width: 42rem;
 }
 
-/* ---- Button ---- */
+/* ---- Button ----
+
+   El pill primario lleva un anillo de 2px con una luz orbitandolo (la maneja
+   components/HoverBorderGradient.tsx). Por eso el relleno cyan NO lo pinta el
+   boton: el boton pinta el ANILLO, la luz se dibuja encima a lo ancho de toda
+   la caja, y .btn-surface la tapa del centro hacia afuera dejando visible nada
+   mas la franja del borde. Sin ese reparto la luz quedaria debajo del relleno
+   y no se veria nunca.
+
+   El foco sigue yendo por outline, que no lo recorta el overflow: hidden. ---- */
 .btn-primary {
+  position: relative;
+  isolation: isolate; /* el z-index de las capas no se escapa del boton */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px; /* touch target minimo (regla touch-target-size) */
-  background-color: var(--accent);
+  background-color: rgba(var(--foreground-rgb), 0.2); /* anillo en reposo */
   color: var(--background);
   border: none;
   border-radius: var(--radius-pill);
@@ -675,6 +686,7 @@ h6,
   font-size: 1rem;
   cursor: pointer;
   outline: none;
+  overflow: hidden; /* recorta la luz al contorno del pill */
   touch-action: manipulation; /* elimina el delay de 300ms al tap */
   box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.4);
   transition: box-shadow 0.3s ease;
@@ -682,6 +694,36 @@ h6,
 
 .btn-primary:hover {
   box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.7);
+}
+
+/* Capa de la luz. El blur le saca el filo al gradiente y lo deja como
+   resplandor; el recorte del contenedor se encarga del resto. */
+.btn-beam {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+/* Relleno del boton. El inset define el grosor del anillo. */
+.btn-surface {
+  position: absolute;
+  inset: 2px;
+  z-index: 1;
+  border-radius: var(--radius-pill);
+  background-color: var(--accent);
+  pointer-events: none;
+}
+
+.btn-label {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 /* ---- Capas de media del hero (imagenes + videos) ----
@@ -1659,46 +1701,87 @@ h6,
   opacity: 0.6;
 }
 
-/* Frame de celular (vertical) — adaptado de daisyUI .mockup-phone a CSS plano.
-   Estructura: .mockup-phone > .mockup-phone-camera + .mockup-phone-display,
-   ambos hijos comparten la misma celda del grid (camera arriba, superpuesta). */
+/* ---- Frame de celular (vertical) ----
+
+   Es un render de iPhone: public/iphone-frame.png (754x1555) con la PANTALLA
+   CALADA — alpha 0 en el area de pantalla, opaco en todo el resto. Va ENCIMA
+   del contenido, no abajo. Esa es toda la idea: el bisel, el brillo del vidrio
+   y la isla dinamica tapan solos los bordes de lo que se anima debajo, asi que
+   no hay que recortar nada a mano ni redibujar la isla en CSS (antes era un
+   div, .mockup-phone-camera, que ya no existe).
+
+   Por eso .mockup-phone-display va DETRAS (z-index 1) y lo unico que hace es
+   calzar sobre el hueco. Los cuatro insets y el radio salen MEDIDOS del alpha
+   del propio PNG, no a ojo:
+     hueco de 715x1522, a 21px de la izquierda, 18 der, 17 arriba, 16 abajo
+     esquinas del hueco ~86px de radio -> 12% / 5.65% del hueco
+   En porcentajes escalan solos, asi que un mismo frame sirve para el celular
+   de 150px del fan y para el de 300px de la fila. Si se cambia el PNG hay que
+   volver a medir estos numeros contra su alpha.
+
+   Al regenerar el PNG: el calado tiene que ser GEOMETRICO — el rectangulo
+   redondeado entero, preservando solo la isla. Calarlo por umbral de color
+   (tipo "todo lo que sea casi blanco") deja afuera los reflejos gris claro
+   que el render trae dibujados sobre el vidrio: quedan opacos flotando arriba
+   del contenido y se leen como una pantalla rota. El borde de la isla ademas
+   viene mezclado contra el blanco de la pantalla, asi que hay que
+   des-premultiplicarlo (alpha = 255 - luminancia) o deja una orla clara.
+
+   La sombra va por filter y no por box-shadow: el telefono es una silueta
+   redondeada con alpha, y box-shadow le dibujaria la sombra de una caja
+   rectangular alrededor. */
 .mockup-phone {
-  display: inline-grid;
-  justify-items: center;
+  position: relative;
   width: 100%;
   max-width: 300px;
-  aspect-ratio: 462 / 978;
-  border: 5px solid #6b6b6b;
-  border-radius: 65px;
-  background-color: #000;
-  padding: 6px;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(var(--shadow-rgb), 0.5), 0 0 40px rgba(var(--accent-rgb), 0.08);
+  aspect-ratio: 754 / 1555;
+  filter: drop-shadow(0 20px 40px rgba(var(--shadow-rgb), 0.5));
 }
 
-.mockup-phone-camera {
-  grid-column: 1 / 1;
-  grid-row: 1 / 1;
-  z-index: 1;
-  width: 28%;
-  height: 3.7%;
-  margin-top: 3%;
-  background: #000;
-  border-radius: 17px;
+.mockup-phone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: url("/iphone-frame.png") 50% 50% / 100% 100% no-repeat;
+  pointer-events: none;
 }
 
 .mockup-phone-display {
-  grid-column: 1 / 1;
-  grid-row: 1 / 1;
-  width: 100%;
-  height: 100%;
-  border-radius: 54px;
+  position: absolute;
+  z-index: 1;
+  top: 1.09%;
+  right: 2.39%;
+  bottom: 1.03%;
+  left: 2.79%;
+  border-radius: 12% / 5.65%;
   overflow: hidden;
   /* estado vacío: centra el placeholder; la imagen real llena el frame */
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.06), rgba(var(--foreground-rgb), 0.02));
+  background-color: #000;
+  background-image: linear-gradient(160deg, rgba(var(--accent-rgb), 0.06), rgba(var(--foreground-rgb), 0.02));
+}
+
+/* Despeje de la isla dinamica para las UIs que se dibujan en codigo. La isla
+   termina al 4.53% del alto de la pantalla; como el padding en % se resuelve
+   contra el ANCHO del contenedor, se convierte con la relacion del hueco
+   (1522/715 = 2.13): 4.53% del alto = 9.6% del ancho. De ahi para arriba es
+   aire. Al ser proporcional, un solo valor sirve para todos los tamaños de
+   frame — antes esto se repetia en cada media query.
+   (El video de Presencia NO lleva despeje: es la pantalla de un celular real,
+   ya trae su propio hueco de isla y tiene que ir a sangre.) */
+.mockup-phone-display .wa-header {
+  padding-top: 12%;
+}
+
+.mockup-phone-display .call-ui {
+  padding-top: 15%;
+}
+
+.mockup-phone-display .crm-phone-ui {
+  padding-top: 12%;
 }
 
 .mockup-phone-display > img {
@@ -1837,18 +1920,6 @@ h6,
 
 .mockup-combo-phone-left {
   left: -15%;
-}
-
-/* El radio de daisyUI (65px) es enorme en un frame chico → se ve deformado.
-   Lo escalamos proporcionalmente al tamaño del celular del combo. */
-.mockup-combo-phone .mockup-phone {
-  border-width: 3px;
-  border-radius: var(--radius-lg);
-  padding: 4px;
-}
-
-.mockup-combo-phone .mockup-phone-display {
-  border-radius: 20px;
 }
 
 /* Caption chico debajo del mockup (ej. fila 3) */
@@ -2218,27 +2289,8 @@ h6,
   filter: drop-shadow(0 24px 44px rgba(var(--shadow-rgb), 0.5));
 }
 
-/* Radios escalados al ancho real del frame para que las esquinas mantengan la
-   silueta de celular y no queden ni cuadradas ni tipo pastilla.
-   Relación del sitio: display = frame - borde - padding.
-   Base = frame mobile (~240px); el frame grande va en min-width: 768px. */
-.agents-single-phone .mockup-phone {
-  border-width: 4px;
-  border-radius: 44px;
-  padding: 4px;
-}
-.agents-single-phone .mockup-phone-display {
-  border-radius: 36px;
-}
-
-/* La isla dinámica (cámara) vive arriba y al centro: empujamos el contenido
-   de cada UI para que el header/estado nunca queden tapados por ella. */
-.agents-single-phone .wa-header {
-  padding-top: 18px;
-}
-.agents-single-phone .call-ui {
-  padding-top: 24px;
-}
+/* Los radios del frame y el despeje de la isla ya no se redefinen por tamaño:
+   con el render los tres van en % sobre .mockup-phone y escalan solos. */
 
 @media (min-width: 768px) {
   .agents-single {
@@ -2247,21 +2299,6 @@ h6,
   .agents-single-phone {
     width: clamp(220px, 42vw, 280px);
   }
-  /* frame más grande → radios y clearance de isla proporcionalmente mayores */
-  .agents-single-phone .mockup-phone {
-    border-width: 5px;
-    border-radius: 60px;
-    padding: 6px;
-  }
-  .agents-single-phone .mockup-phone-display {
-    border-radius: 49px;
-  }
-  .agents-single-phone .wa-header {
-    padding-top: 22px;
-  }
-  .agents-single-phone .call-ui {
-    padding-top: 30px;
-  }
 }
 
 .agents-fan-phone {
@@ -2269,18 +2306,6 @@ h6,
   top: 50%;
   left: 50%;
   width: clamp(132px, 40vw, 168px);
-}
-
-/* Misma silueta que el celular de la fila 1, escalada a este frame mas chico.
-   Se mantiene la relacion display = radio - borde - padding.
-   Base = frame mobile (~150px); el frame grande va en min-width: 768px. */
-.agents-fan-phone .mockup-phone {
-  border-width: 3px;
-  border-radius: 33px;
-  padding: 3px;
-}
-.agents-fan-phone .mockup-phone-display {
-  border-radius: 27px;
 }
 
 /* Chat detrás/escalonado: mas a la izquierda, rotado, mas chico y atenuado.
@@ -2304,15 +2329,6 @@ h6,
   }
   .agents-fan-phone {
     width: clamp(150px, 30vw, 210px);
-  }
-  /* misma proporcion, escalada al frame mas grande (~210px) */
-  .agents-fan-phone .mockup-phone {
-    border-width: 4px;
-    border-radius: 46px;
-    padding: 4px;
-  }
-  .agents-fan-phone .mockup-phone-display {
-    border-radius: 38px;
   }
   .agents-fan-phone-back {
     transform: translate(-92%, -56%) rotate(-8deg) scale(0.86);
@@ -2910,15 +2926,12 @@ h6,
     drop-shadow(0 26px 46px rgba(var(--shadow-rgb), 0.62));
 }
 
-/* Radio del frame escalado al celular chico (misma relación que agents-fan) */
+/* La sombra del celular ya la pone el propio .crm-fan-phone (drop-shadow de
+   arriba); el frame no tiene que sumar la suya. */
 .crm-fan-phone .mockup-phone {
-  border-width: 4px;
-  border-radius: 34px;
-  padding: 4px;
-  box-shadow: none;
+  filter: none;
 }
 .crm-fan-phone .mockup-phone-display {
-  border-radius: 27px;
   background: var(--background);
 }
 

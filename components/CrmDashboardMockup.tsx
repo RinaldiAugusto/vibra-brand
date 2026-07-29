@@ -433,7 +433,6 @@ export default function CrmDashboardMockup() {
       {/* Celular atrás/escalonado: mismo dashboard, apilado en mobile */}
       <div className="crm-fan-phone">
         <div className="mockup-phone">
-          <div className="mockup-phone-camera" aria-hidden />
           <div className="mockup-phone-display">
             <PhoneCRM counts={counts} active={active} feed={feed} />
           </div>

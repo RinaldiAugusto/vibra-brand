@@ -120,12 +120,16 @@ Para glows de acento directos (botones, líneas lamp) se usa
 
 ### Botón primario (`.btn-primary`)
 
-| Propiedad | Reposo | Hover |
-|-----------|--------|-------|
-| Fondo | `--accent` | `--accent` |
+| Propiedad | Reposo | Hover / foco |
+|-----------|--------|--------------|
+| Fondo (`.btn-surface`) | `--accent` | `--accent` |
 | Texto | `--background` | `--background` |
 | Radio | `--radius-pill` | — |
 | Sombra | `0 0 15px --accent-glow` | `0 0 25px --accent-glow-strong` |
+| Anillo (2px) | blanco 20% + luz blanca orbitando, 4s/vuelta | anillo entero encendido en `--accent` |
+
+El anillo lo maneja `components/HoverBorderGradient.tsx`. Se congela con
+`prefers-reduced-motion`.
 
 ### Card (patrón general)
 

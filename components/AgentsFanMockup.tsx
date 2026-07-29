@@ -16,11 +16,12 @@ import { motion, useReducedMotion } from "framer-motion";
  * estado final estatico.
  */
 
-// Frame de celular reutilizando el device del sitio (.mockup-phone).
+// Frame de celular reutilizando el device del sitio (.mockup-phone). La isla
+// dinamica viene dibujada en el render del frame, por eso acá no hay nada más
+// que la pantalla.
 export function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mockup-phone">
-      <div className="mockup-phone-camera" aria-hidden />
       <div className="mockup-phone-display">{children}</div>
     </div>
   );

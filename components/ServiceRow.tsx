@@ -105,12 +105,13 @@ function MockupVideo({ src }: { src: string }) {
   );
 }
 
-// ---- Frames de mockup en CSS puro ----
+// ---- Frames de mockup ----
 // El área .mockup-phone-display / .mockup-screen es donde va la captura real.
+// En el celular el device es un render PNG con la pantalla calada que se apoya
+// encima (isla dinamica incluida); acá solo va el contenido de la pantalla.
 function PhoneFrame({ videoSrc }: { videoSrc?: string }) {
   return (
     <div className="mockup-phone">
-      <div className="mockup-phone-camera" aria-hidden />
       <div className="mockup-phone-display">
         {videoSrc ? (
           // Demo viva: se reproduce sola, en loop, sin sonido ni controles.

@@ -44,9 +44,9 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Llama por vos: confirma turnos y recuerda pagos",
       "Habla natural y deriva a un humano cuando hace falta",
     ],
-    // Render 3D de un iPhone con la llamada en curso (marco incluido en el video).
-    mockup: "phone-render",
-    phoneVideoSrc: "/videos/voicebot-render.mp4",
+    // Celular con la llamada en curso: device = frame nuevo, UI animada en
+    // codigo (timer, ondas de audio, transcripcion). Ver AgentsFanMockup.
+    mockup: "call",
   },
   {
     // FILA 3 — Agente de Chat (mockup izquierda / card derecha)
@@ -59,9 +59,9 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Atiende a 100 personas a la vez, sin esperas",
       "Trabaja sobre tu agenda y tu CRM, todo dentro del sistema",
     ],
-    // Render 3D de un iPhone con el chat de WhatsApp (marco incluido en el video).
-    mockup: "phone-render",
-    phoneVideoSrc: "/videos/chatbot-render.mp4",
+    // Celular con el chat de WhatsApp: device = frame nuevo, conversacion
+    // animada en codigo (burbujas, "escribiendo…"). Ver AgentsFanMockup.
+    mockup: "chat",
   },
   {
     // FILA 4 — Operaciones Automatizadas (card izquierda / mockup derecha)
@@ -93,9 +93,12 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
       "Hecha para convertir visitas en contactos",
       "Rápida, optimizada para Google y celulares",
     ],
-    // Render 3D de un iPhone mostrando una landing (marco incluido en el video).
-    mockup: "phone-render",
-    phoneVideoSrc: "/videos/presencia-render.mp4",
+    // Acá el contenido ES una web, así que sigue siendo video: presencia-pantalla.mp4
+    // es el tramo frontal de presencia-render.mp4 recortado A LA PANTALLA (sin el
+    // iPhone del render, que ahora lo pone el frame) y cerrado en loop con un
+    // crossfade de 0.7s. Su aspect (688/1466) es el del hueco del frame.
+    mockup: "phone",
+    phoneVideoSrc: "/videos/presencia-pantalla.mp4",
   },
 ];
 
