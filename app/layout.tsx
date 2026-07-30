@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Manrope } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import MotionProvider from "@/components/MotionProvider";
 import CalProvider from "@/components/cal-provider";
 
@@ -53,6 +51,13 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root layout: solo lo que TODA ruta necesita — el documento, las fuentes y
+ * los providers. El header y el footer del sitio bajaron a app/(site), asi la
+ * demo puede tener su propio chrome sin heredarlos. Toda ruta nueva tiene que
+ * llevar un id="contenido" en su contenedor principal para que el skip-link
+ * siga teniendo destino.
+ */
 export default function RootLayout({
   children,
 }: {
@@ -69,11 +74,7 @@ export default function RootLayout({
         <a href="#contenido" className="skip-link">
           Saltar al contenido
         </a>
-        <MotionProvider>
-          <Header />
-          {children}
-          <Footer />
-        </MotionProvider>
+        <MotionProvider>{children}</MotionProvider>
       </body>
     </html>
   );

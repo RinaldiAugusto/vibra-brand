@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import Button from "./Button";
 import AgentsFanMockup, {
@@ -51,6 +52,9 @@ export interface ServiceRowProps {
   ctaHref: string;
   /** Texto del botón CTA. */
   ctaLabel?: string;
+  /** Segundo CTA opcional, debajo del principal (ej. "Ver demostración"). */
+  secondaryCtaHref?: string;
+  secondaryCtaLabel?: string;
 }
 
 /**
@@ -227,6 +231,8 @@ export default function ServiceRow({
   phoneVideoSrc,
   ctaHref,
   ctaLabel = "Adaptar a mi negocio",
+  secondaryCtaHref,
+  secondaryCtaLabel,
 }: ServiceRowProps) {
   const glow = useBorderGlow<HTMLDivElement>();
   return (
@@ -287,11 +293,35 @@ export default function ServiceRow({
           ))}
         </ul>
 
-        <a href={ctaHref} style={{ width: "100%", display: "block", marginTop: "auto" }}>
-          <Button style={{ width: "100%", padding: "1rem" }}>
-            {ctaLabel}
-          </Button>
-        </a>
+        <div className="service-cta-group">
+          <a href={ctaHref} style={{ width: "100%", display: "block" }}>
+            <Button style={{ width: "100%", padding: "1rem" }}>
+              {ctaLabel}
+            </Button>
+          </a>
+
+          {/* Segundo CTA: mismo peso visual que un link, no compite con el
+              principal. Es next/link para que la ruta venga precargada. */}
+          {secondaryCtaHref && secondaryCtaLabel && (
+            <Link href={secondaryCtaHref} className="service-cta-secondary">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <circle cx="12" cy="12" r="9.2" />
+                <path d="M10.2 8.6l5.2 3.4-5.2 3.4z" fill="currentColor" stroke="none" />
+              </svg>
+              {secondaryCtaLabel}
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* --- Lado mockup --- */}

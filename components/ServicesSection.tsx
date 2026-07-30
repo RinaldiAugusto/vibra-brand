@@ -31,6 +31,11 @@ const rows: Omit<ServiceRowProps, "reverse" | "ctaHref">[] = [
     phoneVideoSrc: "/videos/sistema-total-render.mp4",
     highlighted: true,
     badge: "MÁS POPULAR",
+    // Recorrido de 6 pantallas que muestra el sistema entero funcionando: es
+    // la unica fila donde tiene sentido, porque es la que promete "todo
+    // integrado" y la demo es justamente la prueba de esa frase.
+    secondaryCtaHref: "/demo",
+    secondaryCtaLabel: "Ver demostración",
   },
   {
     // FILA 2 — Agente Telefónico (card izquierda / mockup derecha)

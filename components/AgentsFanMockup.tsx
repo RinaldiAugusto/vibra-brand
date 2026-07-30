@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import PhoneShell from "./PhoneShell";
+import WhatsAppChat, { WaMessage } from "./whatsapp/WhatsAppChat";
 
 /**
  * Mockup de la fila "Agentes para Atención Automática": dos celulares
@@ -16,24 +18,18 @@ import { motion, useReducedMotion } from "framer-motion";
  * estado final estatico.
  */
 
-// Frame de celular reutilizando el device del sitio (.mockup-phone). La isla
-// dinamica viene dibujada en el render del frame, por eso acá no hay nada más
-// que la pantalla.
-export function PhoneShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mockup-phone">
-      <div className="mockup-phone-display">{children}</div>
-    </div>
-  );
-}
+// El frame del celular vive en components/PhoneShell.tsx: lo comparten este
+// mockup y la demo interactiva de /demo.
 
 /* ============================================================
    CELULAR 1 (detrás) — Agente de WhatsApp (chat)
+
+   La UI vive en components/whatsapp/WhatsAppChat.tsx (port del kit
+   de Figma, compartido con la demo interactiva de /demo). Acá solo
+   queda el guion y el loop que lo va revelando.
    ============================================================ */
 
-type ChatMsg = { who: "client" | "bot"; text: string; time: string };
-
-const CHAT_SCRIPT: ChatMsg[] = [
+const CHAT_SCRIPT: WaMessage[] = [
   { who: "client", text: "Hola! Atienden hoy?", time: "16:02" },
   {
     who: "bot",
@@ -46,14 +42,21 @@ const CHAT_SCRIPT: ChatMsg[] = [
 
 export function ChatPhone() {
   const reduce = useReducedMotion();
-  const [visible, setVisible] = useState(reduce ? CHAT_SCRIPT.length : 0);
+  // Arranca SIEMPRE en 0, aunque haya reduced-motion: useReducedMotion no sabe
+  // nada en el servidor y devuelve otro valor tras montar, asi que sembrar el
+  // estado inicial con `reduce` rompe la hidratacion. Del salto al estado final
+  // se encarga el efecto de abajo.
+  const [visible, setVisible] = useState(0);
   const [typing, setTyping] = useState(false);
+  // "escribiendo…" del contacto en la title bar (estado del kit de Figma).
+  const [contactTyping, setContactTyping] = useState(false);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
     if (reduce) {
       setVisible(CHAT_SCRIPT.length);
       setTyping(false);
+      setContactTyping(false);
       return;
     }
     let alive = true;
@@ -67,13 +70,22 @@ export function ChatPhone() {
         setFading(false);
         setVisible(0);
         setTyping(false);
+        setContactTyping(false);
         await wait(700);
         for (let i = 0; i < CHAT_SCRIPT.length && alive; i++) {
+          // El cliente "escribe" en la cabecera (como WhatsApp real); el
+          // agente lo hace con la burbuja de puntitos, que es lo que deja
+          // ver que hay alguien respondiendo del otro lado.
           if (CHAT_SCRIPT[i].who === "bot") {
             setTyping(true);
             await wait(1500);
             if (!alive) break;
             setTyping(false);
+          } else {
+            setContactTyping(true);
+            await wait(1200);
+            if (!alive) break;
+            setContactTyping(false);
           }
           setVisible(i + 1);
           await wait(CHAT_SCRIPT[i].who === "bot" ? 1600 : 1300);
@@ -91,52 +103,13 @@ export function ChatPhone() {
   }, [reduce]);
 
   return (
-    <div className="wa-ui">
-      <div className="wa-header">
-        <div className="wa-avatar" aria-hidden>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z" />
-          </svg>
-        </div>
-        <div className="wa-header-info">
-          <span className="wa-name">Cliente</span>
-          <span className="wa-status">en línea</span>
-        </div>
-      </div>
-
-      <div
-        className="wa-body"
-        style={{ opacity: fading ? 0 : 1, transition: "opacity 0.6s ease" }}
-      >
-        {CHAT_SCRIPT.slice(0, visible).map((m, i) => (
-          <motion.div
-            key={i}
-            className={`wa-row wa-row-${m.who}`}
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <div className={`wa-bubble wa-bubble-${m.who}`}>
-              <span className="wa-text">{m.text}</span>
-              <span className="wa-meta">
-                {m.time}
-                {m.who === "bot" && <span className="wa-checks">✓✓</span>}
-              </span>
-            </div>
-          </motion.div>
-        ))}
-
-        {typing && (
-          <div className="wa-row wa-row-bot">
-            <div className="wa-bubble wa-bubble-bot wa-typing" aria-hidden>
-              <span className="wa-dot" />
-              <span className="wa-dot" />
-              <span className="wa-dot" />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <WhatsAppChat
+      messages={CHAT_SCRIPT.slice(0, visible)}
+      typing={typing}
+      contactTyping={contactTyping}
+      threadOpacity={fading ? 0 : 1}
+      animateBubbles={!reduce}
+    />
   );
 }
 
@@ -162,7 +135,9 @@ function formatTime(sec: number) {
 export function CallPhone() {
   const reduce = useReducedMotion();
   const [sec, setSec] = useState(1);
-  const [typed, setTyped] = useState(reduce ? CALL_LINES[0] : "");
+  // Igual que en ChatPhone: nada de sembrar el estado con `reduce`, que en el
+  // servidor todavia no existe. El efecto lo deja en la linea final.
+  const [typed, setTyped] = useState("");
   const [transDim, setTransDim] = useState(false);
 
   // Timer de llamada: corre siempre; reinicia a 00:01 cada 30s (loop suave).
@@ -246,7 +221,10 @@ export function CallPhone() {
         <span className="call-transcript-dot" aria-hidden />
         <span className="call-transcript-text">
           {typed}
-          {!reduce && <span className="call-caret" aria-hidden />}
+          {/* El caret se dibuja siempre y lo esconde el CSS bajo
+              prefers-reduced-motion: decidirlo en JS con `reduce` cambiaba el
+              HTML entre servidor y cliente. */}
+          <span className="call-caret" aria-hidden />
         </span>
       </div>
 
