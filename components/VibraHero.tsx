@@ -720,6 +720,18 @@ export default function VibraHero() {
       let ctx = ctxRefs.current[slot];
       if (!ctx) {
         ctx = canvas.getContext("2d");
+        // El canvas es mas grande que el video (ver el width/height de cada
+        // uno), asi que este drawImage AGRANDA. Quien haga ese agrandado
+        // decide cuanto se nota que el fuente es chico:
+        //  - si el canvas fuera del tamano del video, el agrandado lo haria el
+        //    compositor al estirar la capa por CSS, con un bilineal barato;
+        //  - haciendolo aca con imageSmoothingQuality alto, el navegador usa un
+        //    remuestreo de mejor calidad (tipo Lanczos).
+        // Comparado a tamano de pantalla real, el segundo camino da bordes
+        // bastante mas definidos. No inventa detalle —el fuente del morph es
+        // 720p— pero es la parte de la nitidez que sale gratis, sin un byte
+        // extra de descarga.
+        if (ctx) ctx.imageSmoothingQuality = "high";
         ctxRefs.current[slot] = ctx;
       }
       if (!ctx) return;
@@ -1051,8 +1063,8 @@ export default function VibraHero() {
       <motion.canvas
         aria-hidden
         ref={canvasIdleRef}
-        width={1920}
-        height={1080}
+        width={2560}
+        height={1440}
         className="hero-media hero-morph-canvas"
         style={{
           ...fullscreenMedia,
@@ -1167,8 +1179,8 @@ export default function VibraHero() {
       <motion.canvas
         aria-hidden
         ref={canvasARef}
-        width={1280}
-        height={720}
+        width={2560}
+        height={1440}
         className="hero-media hero-morph-canvas"
         style={{ ...fullscreenMedia, opacity: videoAOpacity }}
       />
@@ -1177,8 +1189,8 @@ export default function VibraHero() {
       <motion.canvas
         aria-hidden
         ref={canvasBRef}
-        width={1280}
-        height={720}
+        width={2560}
+        height={1440}
         className="hero-media hero-morph-canvas"
         style={{ ...fullscreenMedia, opacity: videoBOpacity }}
       />
