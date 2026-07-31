@@ -143,7 +143,12 @@ vec3 StarLayer(vec2 uv) {
 
   // un pixel expresado en alturas de pantalla: piso de radio para que ninguna
   // estrella caiga por debajo del pixel y titile por aliasing
-  float pxRadius = 1.15 / uResolution.y;
+  // Piso de radio. Va en px de DISPOSITIVO (uResolution es el buffer real), y
+  // subio de 1.15 a 1.7 al pasar a dpr 2: a 1.15 device px una estrella ocupa
+  // media pixel CSS, o sea vuelve a ser un punto duro sin degrade — mas nitido
+  // que antes, pero igual de "pixel". A 1.7 el nucleo gaussiano tiene con que
+  // caer y se lee como un punto de LUZ, que es lo que se busca.
+  float pxRadius = 1.7 / uResolution.y;
 
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {
@@ -155,6 +160,12 @@ vec3 StarLayer(vec2 uv) {
 
       // ~55% de celdas ocupadas: rompe la rejilla y deja huecos y grumos
       float present = step(fract(seed * 7.31), 0.55);
+      // Salida temprana. El 45% de las celdas esta vacio y hasta ahora igual se
+      // evaluaba Star() entero —exp, varias divisiones y hasta ocho
+      // lorentzianas del flare— para multiplicarlo por cero al final. Con 4
+      // capas x 9 celdas son 36 evaluaciones por pixel, asi que saltear las
+      // vacias saca casi la mitad del trabajo del shader.
+      if (present < 0.5) continue;
 
       // magnitud con ley de potencia: muchisimas debiles, muy pocas brillantes.
       // La distribucion uniforme original llenaba todo de estrellas medias, que
@@ -162,10 +173,18 @@ vec3 StarLayer(vec2 uv) {
       float mag = fract(seed * 137.0);
       mag = mag * mag * mag;
 
-      float radius = max(mix(0.0013, 0.0032, mag) * gRadiusMul, pxRadius);
+      float radius = max(mix(0.0013, 0.0038, mag) * gRadiusMul, pxRadius);
       float bright = mix(0.10, 1.0, mag) * present;
-      float haloAmt = mix(0.006, 0.06, mag);
-      float flare = smoothstep(0.74, 1.0, mag) * 0.16;
+      // Piso de halo 3.5x mas alto (0.006 -> 0.021). Antes el halo "se pagaba
+      // con brillo" y las debiles —que por la ley de potencia son la enorme
+      // mayoria— quedaban como puntos pelados: nucleo y nada mas. Eso es lo que
+      // las hacia ver dibujadas a mano en vez de fotografiadas. Ninguna optica
+      // real rinde un punto sin algo de glow alrededor; darselo a TODAS es la
+      // diferencia entre un punto blanco y una estrella.
+      float haloAmt = mix(0.021, 0.075, mag);
+      // Puntas de difraccion desde mag 0.60 en vez de 0.74, y un poco mas
+      // marcadas: es la firma optica que lee como "lente de verdad".
+      float flare = smoothstep(0.60, 1.0, mag) * 0.20;
 
       // centelleo con frecuencia propia por estrella (scintillation, no un
       // parpadeo al unisono) y solo sobre el nucleo: el halo queda estable
@@ -321,9 +340,23 @@ export default function Galaxy({
     const ctn = ctnDom.current;
     if (!ctn) return;
 
+    // dpr EXPLICITO. El default de OGL es 1, y setSize() recibe px CSS, asi que
+    // el campo de estrellas se renderizaba a 1x y lo estiraba el navegador: en
+    // una pantalla retina (dpr 2) o un telefono (dpr 3) cada estrella —que ya
+    // tiene piso de ~1 px de radio— terminaba siendo un bloque de 2x2 o 3x3 de
+    // blanco escalado. De ahi que las estrellas parecieran un pixel puesto ahi
+    // nomas: no era el shader, era que se dibujaba a un cuarto de la resolucion
+    // y se agrandaba.
+    //
+    // Tope en 2 a proposito. El costo de fragmentos crece con el CUADRADO del
+    // dpr y este shader recorre 4 capas x 9 celdas por pixel: a dpr 3 son 9
+    // veces los fragmentos de antes, y el hero ya tiene varias capas a pantalla
+    // completa componiendo con blend. De 1 a 2 se gana casi todo el detalle; de
+    // 2 a 3 se paga el doble por una diferencia que casi no se ve.
     const renderer = new Renderer({
       alpha: transparent,
       premultipliedAlpha: false,
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
     });
     const gl = renderer.gl;
 
@@ -390,9 +423,29 @@ export default function Galaxy({
     const mesh = new Mesh(gl, { geometry, program });
     let animateId: number;
 
+    // ---- Techo de 30 fps ----
+    // Este shader es, por lejos, lo mas caro del hero: recorre 4 capas x 9
+    // celdas por pixel, y a dpr 2 son 4 veces los fragmentos que a dpr 1.
+    // Medido a 1440x900: con el campo encendido 142 de cada 250 frames de la
+    // pagina pasaban de 20ms; apagandolo bajaban a 2. No hundia la mediana
+    // —seguia dando 60 fps— pero el 40% de los frames llegaba tarde, y esa
+    // irregularidad es justo lo que se ve como tironeo en el video del hero,
+    // que si depende de que cada frame llegue a tiempo.
+    //
+    // La respuesta no es volver a dpr 1 (ahi las estrellas vuelven a ser un
+    // pixel escalado) sino no redibujar tan seguido: el campo DERIVA, no
+    // anima. A 0.3 de starSpeed una estrella se corre una fraccion de pixel
+    // entre frame y frame, y el centelleo es una senoidal lenta. A 30 fps se
+    // ve igual y cuesta la mitad. El uTime sigue viniendo del reloj real, asi
+    // que la velocidad de la deriva no cambia: solo se muestrea mas grueso.
+    const MIN_FRAME_MS = 1000 / 30;
+    let lastRender = -Infinity;
+
     function update(t: number) {
       animateId = requestAnimationFrame(update);
       if (pausedRef.current) return;
+      if (t - lastRender < MIN_FRAME_MS) return;
+      lastRender = t;
       if (!disableAnimation) {
         program.uniforms.uTime.value = t * 0.001;
         program.uniforms.uStarSpeed.value = (t * 0.001 * starSpeed) / 10.0;

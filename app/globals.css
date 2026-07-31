@@ -211,14 +211,20 @@ h6,
   position: relative;
 }
 
-/* Las capas de glow horneadas viven en el DOM siempre, pero solo pintan en
-   vertical (el bloque de arriba las prende). blur(28px)/blur(80px) en vivo
-   sobre capas de pantalla completa es carisimo en el GPU de un telefono:
-   durante el morph el compositor quedaba saturado y el video no llegaba a
-   presentar frames — la animacion se veia como un slideshow congelado. El
-   mismo desenfoque horneado en un JPG cuesta lo mismo que pintar una foto. */
+/* Glow SIEMPRE horneado, en toda orientacion.
+   Esto antes valia solo en vertical, con el comentario de que blur(28px) y
+   blur(80px) en vivo sobre capas de pantalla completa saturaban el GPU "de un
+   telefono" y el video no llegaba a presentar frames. El diagnostico era
+   correcto pero se quedo corto en donde aplica: medido en desktop a 1440x900
+   con dpr 2, ocultar estas dos capas lleva la pagina de 20 fps a 59.9. O sea
+   que la misma saturacion pasaba en una maquina de escritorio — solo que ahi
+   no habia un video reproduciendose solo que lo hiciera evidente hasta que el
+   idle lo puso en pantalla.
+   Es esperable: un blur de 80px se evalua por pixel del viewport, y a dpr 2
+   son 2880x1800 pixeles por capa y por frame.
+   El JPG con el desenfoque ya horneado cuesta lo mismo que pintar una foto. */
 .hero-glow-baked {
-  display: none;
+  display: block;
 }
 
 /* ---- Luz ambiente del morph (solo vertical) ----
@@ -892,14 +898,6 @@ h6,
     );
   }
 
-  /* En vertical las capas de glow con filter: blur() EN VIVO se apagan y
-     entran sus gemelas con el blur ya horneado en el asset (ver abajo). */
-  .hero-glow-live {
-    display: none;
-  }
-  .hero-glow-baked {
-    display: block;
-  }
 }
 
 /* ============================================================

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  animate,
   motion,
   useScroll,
   useTransform,
@@ -33,6 +34,59 @@ const AMBIENT_OUT: readonly [number, number] = [0.6, 0.7];
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const ramp = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
+
+// ---- Calibracion de la luz del idle ----
+// Ganancia de las capas de luz (bloom + halo). Estaban calibradas contra la
+// estrella QUIETA de hero_1.png; con el idle en movimiento la escena sumaba
+// demasiada luz y se lavaba el navy del fondo. Es la perilla para subir o bajar
+// el resplandor sin tocar nada mas.
+const GLOW_GAIN = 0.72;
+
+// Luminancia media del idle, medida sobre el CICLO ENTERO del asset final
+// (public/hero_idle.mp4). No esta de adorno: la estrella arranca al mismo brillo
+// que hero_1.png (34.4) pero se va encendiendo hasta 47.9 — un +39%— y como el
+// video es de ida y vuelta, ese pico cae justo donde da la vuelta, asi que se
+// sostiene varios segundos en vez de pasar de largo. Ahi es donde la escena se
+// lavaba. La tabla arranca y termina en ~34, que es lo que deja cerrar el
+// circulo sin escalon (ver idleDim).
+const IDLE_LUM = [
+  34.4, 30.3, 27.0, 25.1, 27.1, 31.4, 38.4, 37.8,
+  34.3, 30.3, 28.0, 31.3, 39.2, 46.8, 47.6, 47.9,
+  47.7, 47.5, 46.9, 39.9, 31.9, 27.9, 29.9, 33.8,
+  37.3, 38.1, 32.2, 27.6, 25.0, 26.9, 30.0, 34.0,
+];
+const IDLE_SAMPLE = 0.2875; // separacion entre muestras de IDLE_LUM, en segundos
+const IDLE_DURATION = 9.2; // ciclo completo de ida y vuelta (552 frames a 60 fps)
+// fps del asset. Solo lo usa el fallback sin requestVideoFrameCallback.
+const IDLE_FPS = 60;
+// Techo de luz del idle: la luminancia de hero_1.png, o sea el brillo con el que
+// la escena quedo calibrada. El idle nunca pasa de ahi. Va explicito y no leido
+// de IDLE_LUM[0] para que siga siendo el mismo valor aunque se recalcule la
+// tabla al cambiar el asset. Es LA perilla del brillo de la estrella.
+const IDLE_CEIL = 34.4;
+
+/**
+ * Cuanto atenuar el frame del idle que toca en el segundo `t`.
+ *
+ * Normaliza contra IDLE_CEIL, asi que el techo es "no brillar mas que la imagen
+ * quieta con la que se calibro la escena". Siempre <= 1: nunca LEVANTA un frame
+ * oscuro, solo corta los picos, porque el bajon del medio del recorrido es
+ * parte de la animacion y no un defecto.
+ *
+ * La tabla se recorre en CIRCULO — el ultimo valor interpola contra el primero —
+ * porque el ciclo cierra sobre si mismo. Cubre el recorrido ENTERO (ida y
+ * vuelta), no medio espejado: sale igual y no hay que acordarse de espejar si
+ * algun dia el asset deja de ser simetrico.
+ */
+const idleDim = (t: number) => {
+  const wrapped = ((t % IDLE_DURATION) + IDLE_DURATION) % IDLE_DURATION;
+  const i = wrapped / IDLE_SAMPLE;
+  const lo = Math.floor(i) % IDLE_LUM.length;
+  const hi = (lo + 1) % IDLE_LUM.length;
+  const lum =
+    IDLE_LUM[lo] + (IDLE_LUM[hi] - IDLE_LUM[lo]) * (i - Math.floor(i));
+  return Math.min(1, IDLE_CEIL / lum);
+};
 
 // vuelo de hero_3 hacia el boton del header
 const CLUSTER_SIZE = 48; // px — tamano final del logo
@@ -96,6 +150,31 @@ export default function VibraHero() {
   const ref = useRef<HTMLElement>(null);
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
+  // Video idle: la estrella animada que se ve ANTES del scroll. Va por el
+  // mismo camino que los del morph (video oculto -> canvas visible), no por un
+  // <video> a la vista: ver el comentario de canvasARef. Aca el motivo pesa
+  // todavia mas, porque este esta REPRODUCIENDO en loop todo el tiempo que la
+  // pagina esta arriba, que es justo la condicion que hace que iOS lo promueva
+  // a un plano de composicion por hardware y se coma el blend.
+  const videoIdleRef = useRef<HTMLVideoElement>(null);
+  const canvasIdleRef = useRef<HTMLCanvasElement>(null);
+  const idlePainted = useRef(false);
+  // Handshake de pacing entre el decoder y el rAF. Lo levanta
+  // requestVideoFrameCallback —que avisa cuando hay un frame NUEVO listo para
+  // presentar— y lo baja el rAF al dibujarlo, asi sale exactamente un draw por
+  // frame decodificado.
+  //
+  // Antes esto era un gate `Math.round(currentTime * 30)` y de ahi venia el
+  // tironeo: currentTime lo actualiza el navegador con su propia granularidad,
+  // que no esta alineada con la cadencia real del decoder. Redondeandolo, a
+  // veces dos ticks del rAF caian en el mismo frame y a veces uno se saltaba
+  // dos — o sea frames repetidos y perdidos alternandose. En movimientos
+  // amplios se disimula; en los sutiles, que es donde se veia, se lee como
+  // pasos irregulares.
+  const idleFrameReady = useRef(false);
+  const hasRVFC = useRef(false);
+  // solo para el fallback sin rVFC (Firefox viejo)
+  const lastIdleFrame = useRef(-1);
 
   // Los videos NO se muestran: son la fuente de frames de dos <canvas>, que
   // son las capas visibles del morph. Cuando un <video> se esta
@@ -122,9 +201,14 @@ export default function VibraHero() {
   const lastLightT = useRef(-1);
   // Aspecto del viewport, cacheado. Lo actualiza measure() en cada resize.
   const vpAspect = useRef(0.5);
-  const ctxRefs = useRef<(CanvasRenderingContext2D | null)[]>([null, null]);
-  const lastDrawnT = useRef<number[]>([-1, -1]);
-  const fadeGrads = useRef<(CanvasGradient | null)[]>([null, null]);
+  // Tres slots: 0 = morph A, 1 = morph B, 2 = idle.
+  const ctxRefs = useRef<(CanvasRenderingContext2D | null)[]>([
+    null,
+    null,
+    null,
+  ]);
+  const lastDrawnT = useRef<number[]>([-1, -1, -1]);
+  const fadeGrads = useRef<(CanvasGradient | null)[]>([null, null, null]);
 
   // Respeta prefers-reduced-motion: congela los bucles autoplay (titileo,
   // bloom/halo pulsante, giro continuo del logo). El morph sigue atado al
@@ -247,6 +331,43 @@ export default function VibraHero() {
     };
   }, []);
 
+  // ---- Pacing del idle: un draw por frame decodificado ----
+  // requestVideoFrameCallback avisa cuando el decoder tiene un frame NUEVO
+  // listo para presentar, que es la unica fuente fiable de la cadencia real.
+  // El callback no dibuja: solo levanta la bandera, y el rAF —que ya es el
+  // unico lugar donde se pinta— la consume. Asi el canvas del idle avanza al
+  // ritmo exacto del video, sin repetir ni saltear.
+  //
+  // Safari 15.4+, Chrome y Edge lo tienen. Donde no, hasRVFC queda en false y
+  // el rAF cae al gate por numero de frame de antes: peor pacing, pero
+  // funciona igual.
+  useEffect(() => {
+    const iv = videoIdleRef.current;
+    if (!iv || reduce) return;
+    type RVFC = HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: () => void) => number;
+      cancelVideoFrameCallback?: (handle: number) => void;
+    };
+    const v = iv as RVFC;
+    if (!v.requestVideoFrameCallback) return;
+
+    hasRVFC.current = true;
+    let handle = 0;
+    let cancelled = false;
+    const onFrame = () => {
+      if (cancelled) return;
+      idleFrameReady.current = true;
+      handle = v.requestVideoFrameCallback!(onFrame);
+    };
+    handle = v.requestVideoFrameCallback(onFrame);
+
+    return () => {
+      cancelled = true;
+      hasRVFC.current = false;
+      v.cancelVideoFrameCallback?.(handle);
+    };
+  }, [reduce]);
+
   // ---- Viewport vertical (celular) ----
   // Como motion value y no como estado de React: los transforms de framer
   // capturan su funcion una sola vez, asi que un boolean de useState no los
@@ -302,6 +423,38 @@ export default function VibraHero() {
     ([s, z]: number[]) => s * z
   );
 
+  // ---- Relevo hero_1.png -> video idle ----
+  // Las dos capas muestran LO MISMO (el frame 0 del video es identico a
+  // hero_1.png, verificado contra el asset), asi que no pueden convivir
+  // encendidas: con mix-blend-mode: screen la luz se suma —
+  // screen(a, a) = 1-(1-a)^2 es mas brillante que a— y la estrella salia
+  // lavada. Por eso el PNG se apaga en la misma medida en que entra el video.
+  //
+  // Ese reparto es tambien lo que hace de poster sin flash negro: hasta que el
+  // video no pinta su primer frame idleActive vale 0 y lo que se ve es el PNG,
+  // que ya viene con priority y es el LCP de la pagina. El cruce dura 0.4s
+  // (ver el rAF) para tapar los ~2 frames que el video puede haber avanzado
+  // entre el autoplay y el primer draw.
+  //
+  // Bajo prefers-reduced-motion el video ni se monta: idleActive queda en 0
+  // para siempre y el hero es exactamente el de antes, la imagen quieta.
+  const idleActive = useMotionValue(0);
+  // Atenuacion de luz del idle (ver idleDim). Va como OPACIDAD de la capa y no
+  // como un multiply dentro del canvas: sobre un fondo casi negro y con blend
+  // screen las dos cosas dan practicamente lo mismo —la capa aporta luz en
+  // proporcion a su alfa— pero la opacidad la resuelve el compositor gratis,
+  // mientras que el multiply costaba un fillRect de 1920x1080 por frame
+  // ademas del drawImage. Era la mitad del trabajo por frame para nada.
+  const idleDimMV = useMotionValue(1);
+  const burstImgOpacity = useTransform(
+    [burstOpacity, idleActive],
+    ([o, a]: number[]) => o * (1 - a)
+  );
+  const idleOpacity = useTransform(
+    [burstOpacity, idleActive, idleDimMV],
+    ([o, a, d]: number[]) => o * a * d
+  );
+
   // bloom: la misma imagen difuminada como halo de luz que respira; con
   // blend screen sobre negro solo las zonas brillantes (la estrella y sus
   // rayos) aportan luz, asi que el halo emana de la propia iluminacion.
@@ -330,7 +483,7 @@ export default function VibraHero() {
   );
   const bloomOpacity = useTransform(
     [burstOpacity, glowTail, bloomPulse],
-    ([a, t, b]: number[]) => Math.max(a, t) * clamp01(b)
+    ([a, t, b]: number[]) => Math.max(a, t) * clamp01(b) * GLOW_GAIN
   );
   // sobre burstScaleBase, no burstScale: el glow ya tiene su propio encuadre
   // grande (--hero-glow-w) y sumarle el zoom de entrada lo convertia en un
@@ -366,7 +519,7 @@ export default function VibraHero() {
   });
   const haloOpacity = useTransform(
     [burstOpacity, glowTail, haloPulse],
-    ([a, t, b]: number[]) => Math.max(a, t) * clamp01(b)
+    ([a, t, b]: number[]) => Math.max(a, t) * clamp01(b) * GLOW_GAIN
   );
   const haloScale = useTransform(
     [burstScaleBase, haloPulse],
@@ -610,6 +763,41 @@ export default function VibraHero() {
     if (p >= 0.06 && p < 0.46) draw(videoARef.current, canvasARef.current, 0);
     if (p >= 0.34 && p < 0.68) draw(videoBRef.current, canvasBRef.current, 1);
 
+    // ---- Idle: la estrella animada, antes del scroll ----
+    // Se apaga en p=0.15 junto con burstOpacity, asi que fuera de [0, 0.16] no
+    // hay nada que pintar: ahi el video se PAUSA. Sin eso el decoder seguiria
+    // corriendo en loop durante toda la pagina, quemando bateria por una capa
+    // invisible.
+    const iv = videoIdleRef.current;
+    if (iv) {
+      if (p < 0.16) {
+        if (iv.paused) iv.play().catch(() => {});
+        // Con rVFC se dibuja exactamente cuando el decoder aviso que hay frame
+        // nuevo. Sin el, se cae al gate por numero de frame (ver hasRVFC).
+        let fresh: boolean;
+        if (hasRVFC.current) {
+          fresh = idleFrameReady.current;
+          idleFrameReady.current = false;
+        } else {
+          const frame = Math.round(iv.currentTime * IDLE_FPS);
+          fresh = frame !== lastIdleFrame.current;
+          if (fresh) lastIdleFrame.current = frame;
+        }
+        if (iv.readyState >= 2 && fresh) {
+          // la atenuacion viaja por la opacidad de la capa, no por el canvas
+          idleDimMV.set(idleDim(iv.currentTime));
+          draw(iv, canvasIdleRef.current, 2);
+          if (!idlePainted.current) {
+            idlePainted.current = true;
+            // recien ahora hay imagen: se cruza el relevo desde el PNG
+            animate(idleActive, 1, { duration: 0.4, ease: "easeOut" });
+          }
+        }
+      } else if (!iv.paused) {
+        iv.pause();
+      }
+    }
+
     // ---- Luz ambiente derivada del propio morph ----
     // Se dibuja el frame vigente en un canvas de 32x18 que CSS estira a
     // pantalla completa. El desenfoque no cuesta nada: lo hace el propio
@@ -831,8 +1019,45 @@ export default function VibraHero() {
         style={{
           ...fullscreenMedia,
           scale: burstScale,
-          opacity: burstOpacity,
+          // burstImgOpacity y no burstOpacity: esta capa hace de poster del
+          // video idle y se apaga cuando el video toma el relevo (ver arriba).
+          // Las capas de glow SI siguen con burstOpacity — son luz difusa y no
+          // compiten con el video.
+          opacity: burstImgOpacity,
           filter: burstFilter,
+        }}
+      />
+
+      {/* ---- idle: la estrella animada, antes del scroll ----
+           Misma caja, misma escala y misma ventana de opacidad que hero_1.png:
+           es su reemplazo en movimiento, no una capa nueva de la escena. Por
+           eso el crossfade hacia el video A en [0.10, 0.15] queda igual que
+           antes y el morph del scroll no cambia en nada.
+
+           hero-morph-canvas ademas le saca la mask-image que .hero-media aplica
+           en vertical: el fade de la franja va horneado en el alfa por draw(),
+           por el mismo motivo que en los canvas del morph.
+
+           Sin filter: burstFilter a proposito. El titileo de hero_1 existia
+           porque la imagen estaba CONGELADA; el video ya trae su propio cambio
+           de luz, y un brightness() sobre un canvas que se repinta 30 veces por
+           segundo obliga a re-filtrar en cada frame. */}
+      {/* 1920x1080 y no 1280x720 como los canvas del morph: ahi el fuente ES de
+          1280x720 y agrandar el canvas solo interpolaria: aca el fuente es
+          1920x1080, asi que a 1280 se estaba TIRANDO resolucion. Y el destino
+          la pide: en vertical el arte se pinta a 180vw (~2100px de dispositivo
+          en un telefono 3x) y en desktop a 100vw de una pantalla retina. Este
+          cambio se nota mas que cualquier ajuste de compresion. */}
+      <motion.canvas
+        aria-hidden
+        ref={canvasIdleRef}
+        width={1920}
+        height={1080}
+        className="hero-media hero-morph-canvas"
+        style={{
+          ...fullscreenMedia,
+          scale: burstScale,
+          opacity: idleOpacity,
         }}
       />
 
@@ -843,23 +1068,6 @@ export default function VibraHero() {
            (solo portrait) — blur en vivo a pantalla completa saturaba el GPU
            del telefono y el video del morph no llegaba a pintar frames.
            Comparten los mismos motion values, asi pulsan identico. ---- */}
-      <MotionImage
-        aria-hidden
-        src="/hero_1.png"
-        alt=""
-        width={4096}
-        height={2305}
-        quality={45}
-        sizes="55vw"
-        loading="eager"
-        className="hero-media hero-media-glow hero-glow-live"
-        style={{
-          ...fullscreenMedia,
-          scale: bloomScale,
-          opacity: bloomOpacity,
-          filter: "blur(28px) saturate(1.4) brightness(0.6)",
-        }}
-      />
       <motion.img
         aria-hidden
         src="/hero_1_bloom.jpg"
@@ -874,23 +1082,6 @@ export default function VibraHero() {
       />
 
       {/* ---- halo exterior de hero_1: resplandor espacial amplio ---- */}
-      <MotionImage
-        aria-hidden
-        src="/hero_1.png"
-        alt=""
-        width={4096}
-        height={2305}
-        quality={35}
-        sizes="40vw"
-        loading="eager"
-        className="hero-media hero-media-glow hero-glow-live"
-        style={{
-          ...fullscreenMedia,
-          scale: haloScale,
-          opacity: haloOpacity,
-          filter: "blur(80px) saturate(1.6) brightness(0.68)",
-        }}
-      />
       <motion.img
         aria-hidden
         src="/hero_1_halo.jpg"
@@ -908,6 +1099,33 @@ export default function VibraHero() {
            2x2px y opacity ~0 (no display:none: iOS no decodifica un video
            display:none). Los canvas de abajo son las capas visibles; ver el
            comentario de canvasARef por que. */}
+      {/* Idle. autoPlay + loop (se reproduce solo, no se scrubbea) y muted +
+          playsInline, que es lo que habilita el autoplay sin gesto del usuario.
+          Bajo prefers-reduced-motion no se monta: asi ademas no se bajan los
+          3.4 MB al pedo, y la capa de arriba se queda en hero_1.png quieto. */}
+      {!reduce && (
+        <video
+          aria-hidden
+          ref={videoIdleRef}
+          src="/hero_idle.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          style={{
+            position: "fixed",
+            left: 0,
+            bottom: 0,
+            width: 2,
+            height: 2,
+            opacity: 0.01,
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+      )}
+
       <video
         aria-hidden
         ref={videoARef}
