@@ -416,29 +416,55 @@ h6,
   font-size: 1rem;
 }
 
-/* ---- Demo content below the hero ----
-   Base = mobile. El padding horizontal sube en tablet/desktop mas abajo,
-   en los bloques min-width. */
+/* ---- Contenido debajo del hero ----
+   Ritmo vertical continuo en vez de escalones por breakpoint: el aire crece
+   con el viewport y ya no salta en 768/1024. El padding horizontal es el
+   UNICO gutter de la pagina — los grids de adentro no vuelven a sumar el
+   suyo, si no el contenido quedaba con doble sangria. */
 .section {
   position: relative;
   z-index: 10;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 4rem 1rem;
+  padding: clamp(4rem, 8vw, 8rem) clamp(1.25rem, 4vw, 2rem);
 }
 
-.section h2 {
+/* :where() baja estas dos reglas a especificidad 0: son el DEFAULT de la
+   seccion, no una orden. Sin esto `.section p` (0-1-1) le ganaba a `.eyebrow`
+   (0-1-0) y el eyebrow salia a 1.125rem gris en vez de 0.72rem cyan; lo mismo
+   pisaba a .guarantee-title. Ahora cualquier clase de una sola pieza
+   (.eyebrow, .faq-answer, .process-step-desc, .guarantee-title...) manda. */
+.section :where(h2) {
   font-weight: 600;
   letter-spacing: -0.03em;
   font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.12;
   margin-bottom: 1.25rem;
 }
 
-.section p {
+.section :where(p) {
   color: var(--muted);
   font-size: 1.125rem;
   line-height: 1.7;
   max-width: 42rem;
+}
+
+/* Cabecera de seccion: eyebrow + h2 + bajada. El eyebrow va pegado al titulo
+   (0.75rem) y el titulo mas separado de la bajada (1.25rem, de .section h2):
+   asi se leen como dos grupos y no como tres lineas sueltas equidistantes. */
+.section-head {
+  text-align: center;
+  margin-bottom: clamp(2.5rem, 6vw, 4rem);
+}
+
+.section-head p {
+  margin-inline: auto;
+}
+
+/* Cabeceras sin bajada (ej. Sobre Nosotros): que el margen del h2 no se
+   sume al de la cabecera. */
+.section-head > :last-child {
+  margin-bottom: 0;
 }
 
 .eyebrow {
@@ -447,7 +473,7 @@ h6,
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 /* Subrayado tipo marcador (trazo celeste con bordes irregulares) */
@@ -455,13 +481,16 @@ h6,
   position: relative;
   display: inline-block;
 }
+/* Alto/offset calzados al eyebrow real (0.72rem): con el bug de especificidad
+   el eyebrow salia a 1.125rem y el trazo de 7px quedaba proporcionado; ahora
+   que el texto es chico, 7px lo tapaba. */
 .marker-underline::after {
   content: "";
   position: absolute;
   left: -4px;
   right: -4px;
-  bottom: -3px;
-  height: 7px;
+  bottom: -2px;
+  height: 5px;
   background: var(--accent);
   border-radius: 4px 9px 5px 8px;
   opacity: 0.75;
@@ -1136,21 +1165,23 @@ h6,
 }
 
 /* ---- CTA Section ---- */
+/* Mismo gutter que .section; el aire de arriba ya lo pone el padding de la
+   seccion anterior, asi que solo queda el remate hasta el footer. */
 .cta-section {
   position: relative;
   z-index: 10;
   max-width: 1000px;
-  margin: 4rem auto 8rem auto;
-  padding: 0 1.5rem;
+  margin: 0 auto clamp(5rem, 10vw, 9rem) auto;
+  padding: 0 clamp(1.25rem, 4vw, 2rem);
 }
 
 .cta-content {
   background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.05) 0%, rgba(var(--background-rgb), 0) 100%);
-  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  border: 1px solid var(--border-accent-soft);
   border-radius: var(--radius-lg);
-  padding: 4rem 2rem;
+  padding: clamp(3rem, 7vw, 4.5rem) clamp(1.5rem, 4vw, 3rem);
   text-align: center;
-  box-shadow: 0 20px 40px rgba(var(--shadow-rgb), 0.4);
+  box-shadow: var(--shadow-elevated);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -1158,6 +1189,7 @@ h6,
 .cta-title {
   font-weight: 700;
   font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.12;
   margin-bottom: 1rem;
   letter-spacing: -0.03em;
 }
@@ -1198,41 +1230,6 @@ h6,
 }
 
 /* ---- Services Section ---- */
-.services-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-.service-card {
-  background: rgba(var(--foreground-rgb), 0.03);
-  border: 1px solid rgba(var(--foreground-rgb), 0.1);
-  border-radius: var(--radius-md);
-  padding: 2.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
-}
-
-.service-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(var(--shadow-rgb), 0.3);
-}
-
-.service-card-premium {
-  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--background-rgb), 0) 100%);
-  border: 1px solid rgba(var(--accent-rgb), 0.4);
-  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.15);
-}
-
-.service-card-premium:hover {
-  box-shadow: 0 15px 40px rgba(var(--accent-rgb), 0.25);
-}
-
 .premium-badge {
   position: absolute;
   top: -12px;
@@ -1268,26 +1265,6 @@ h6,
   line-height: 1.6;
   margin-bottom: 2rem;
   flex-grow: 1;
-}
-
-.service-price {
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.price-label {
-  font-size: 0.9rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.price-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--foreground);
 }
 
 .service-features {
@@ -1413,29 +1390,34 @@ h6,
 }
 
 .service-info-card {
-  background: rgba(var(--foreground-rgb), 0.03);
-  border: 1px solid rgba(var(--foreground-rgb), 0.1);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 2.5rem 2rem;
   display: flex;
   flex-direction: column;
   position: relative;
   height: 100%;
-  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
+    border-color 0.3s var(--ease-out);
 }
 
 .service-info-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(var(--shadow-rgb), 0.3);
+  transform: translateY(-6px);
+  border-color: var(--border-accent-soft);
+  box-shadow: var(--shadow-card);
 }
 
 .service-info-card-highlighted {
   background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--background-rgb), 0) 100%);
-  border: 1px solid rgba(var(--accent-rgb), 0.4);
-  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.15);
+  border: 1px solid var(--border-accent);
+  box-shadow: var(--shadow-accent);
 }
 
+/* Repite border-color porque .service-info-card:hover ahora la baja a
+   --border-accent-soft, y la card destacada no puede perder borde al hover. */
 .service-info-card-highlighted:hover {
+  border-color: rgba(var(--accent-rgb), 0.6);
   box-shadow: 0 15px 40px rgba(var(--accent-rgb), 0.25);
 }
 
@@ -1610,13 +1592,13 @@ h6,
   align-items: flex-start;
   gap: 1.25rem;
   padding: 2rem 1.5rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: linear-gradient(
     120deg,
     rgba(var(--accent-rgb), 0.07) 0%,
     rgba(var(--foreground-rgb), 0.02) 100%
   );
-  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  border: 1px solid var(--border-accent-soft);
 }
 
 .vibra-care-icon {
@@ -1683,8 +1665,8 @@ h6,
 }
 
 .service-subblock {
-  background: rgba(var(--foreground-rgb), 0.03);
-  border: 1px solid rgba(var(--foreground-rgb), 0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--border-faint);
   border-left: 2px solid var(--accent);
   border-radius: var(--radius-sm);
   padding: 1rem 1.15rem;
@@ -1975,38 +1957,48 @@ h6,
 .process-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+  gap: 1.5rem;
 }
 
 .process-step {
-  background: rgba(var(--foreground-rgb), 0.03);
-  border: 1px solid rgba(var(--foreground-rgb), 0.1);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 2.5rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
+    border-color 0.3s var(--ease-out);
 }
 
 .process-step:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(var(--shadow-rgb), 0.3);
+  transform: translateY(-6px);
+  border-color: var(--border-accent-soft);
+  box-shadow: var(--shadow-card);
 }
 
+/* El numero es indice, no titulo: grande pero atenuado, y pegado al titulo
+   (el gap general de la card es 0.75rem; aca se cierra a 0.25rem) para que
+   numero+titulo se lean como un bloque y no como dos lineas sueltas. */
 .process-step-number {
   font-size: 2.5rem;
   font-weight: 700;
   color: var(--accent);
   line-height: 1;
+  opacity: 0.55;
+  margin-bottom: -0.5rem;
+  transition: opacity 0.3s var(--ease-out);
+}
+
+.process-step:hover .process-step-number {
+  opacity: 1;
 }
 
 .process-step-title {
   font-size: 1.25rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .process-step-desc {
@@ -2019,10 +2011,9 @@ h6,
 .faq-list {
   max-width: 46rem;
   margin: 0 auto;
-  padding: 0 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 /* Sin overflow:hidden: recortaba el glow de .border-glow, que por diseno se
@@ -2030,21 +2021,22 @@ h6,
    necesita el acordeon mientras anima la altura ya lo hace
    .faq-answer-wrapper con su propio overflow:hidden. */
 .faq-item {
-  background: rgba(var(--foreground-rgb), 0.03);
-  border: 1px solid rgba(var(--foreground-rgb), 0.1);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   transition: border-color 0.3s var(--ease-out),
     background-color 0.3s var(--ease-out);
 }
 
 .faq-item:hover {
-  border-color: rgba(var(--accent-rgb), 0.3);
-  background: rgba(var(--foreground-rgb), 0.05);
+  border-color: var(--border-accent-soft);
+  background: var(--surface-2);
 }
 
 .faq-item-open,
 .faq-item-open:hover {
-  border-color: rgba(var(--accent-rgb), 0.4);
+  border-color: var(--border-accent);
+  background: var(--accent-tint-soft);
 }
 
 /* El "+" gira un poco y toma el color de acento al pasar por encima */
@@ -2097,7 +2089,6 @@ h6,
 .about-story {
   max-width: 42rem;
   margin: 0 auto;
-  padding: 0 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -2111,78 +2102,21 @@ h6,
   margin: 0 auto;
 }
 
-.team-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: 2rem;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-.team-card {
-  background: rgba(var(--foreground-rgb), 0.03);
-  border: 1px solid rgba(var(--foreground-rgb), 0.1);
-  border-radius: var(--radius-md);
-  padding: 2.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.5rem;
-  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
-    background-color 0.3s var(--ease-out);
-}
-
-.team-card:hover {
-  border-color: rgba(var(--accent-rgb), 0.4);
-  background: rgba(var(--accent-rgb), 0.04);
-  box-shadow: 0 18px 40px rgba(var(--shadow-rgb), 0.35),
-    0 0 22px rgba(var(--accent-rgb), 0.12);
-}
-
-.team-avatar {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.2), rgba(var(--foreground-rgb), 0.05));
-  border: 1px solid rgba(var(--accent-rgb), 0.25);
-  margin-bottom: 1rem;
-  overflow: hidden;
-  transition: transform 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
-}
-
-.team-card:hover .team-avatar {
-  transform: scale(1.06);
-  border-color: rgba(var(--accent-rgb), 0.5);
-}
-
-.team-name {
-  font-size: 1.15rem;
-  font-weight: 600;
-}
-
-.team-role {
-  color: var(--accent);
-  font-size: 0.9rem;
-  letter-spacing: 0.02em;
-}
-
 /* ---- Garantía ---- */
 .guarantee-card {
   max-width: 46rem;
   margin: 0 auto;
   text-align: center;
   background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.06) 0%, rgba(var(--background-rgb), 0) 100%);
-  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  border: 1px solid var(--border-accent-soft);
   border-radius: var(--radius-lg);
-  padding: 3.5rem 2rem;
-  box-shadow: 0 20px 40px rgba(var(--shadow-rgb), 0.35);
+  padding: clamp(2.5rem, 6vw, 3.5rem) clamp(1.5rem, 4vw, 3rem);
+  box-shadow: var(--shadow-elevated);
   transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
 .guarantee-card:hover {
-  border-color: rgba(var(--accent-rgb), 0.45);
+  border-color: var(--border-accent);
   box-shadow: 0 26px 52px rgba(var(--shadow-rgb), 0.42),
     0 0 30px rgba(var(--accent-rgb), 0.18);
 }
@@ -2217,10 +2151,7 @@ h6,
 .compare-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: 2rem;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+  gap: 1.5rem;
 }
 
 .compare-card {
@@ -2229,20 +2160,22 @@ h6,
   transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
+/* El "antes" va deliberadamente mas apagado que el "despues": mismo tamano,
+   distinto peso visual, para que la columna con Vibra sea la que gana. */
 .compare-card-before {
   background: rgba(var(--foreground-rgb), 0.02);
-  border: 1px solid rgba(var(--foreground-rgb), 0.08);
+  border: 1px solid var(--border-faint);
 }
 
 .compare-card-before:hover {
   border-color: rgba(var(--foreground-rgb), 0.18);
-  box-shadow: 0 18px 40px rgba(var(--shadow-rgb), 0.3);
+  box-shadow: var(--shadow-card);
 }
 
 .compare-card-after {
   background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--background-rgb), 0) 100%);
-  border: 1px solid rgba(var(--accent-rgb), 0.4);
-  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.15);
+  border: 1px solid var(--border-accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .compare-card-after:hover {
@@ -2254,7 +2187,15 @@ h6,
 .compare-heading {
   font-size: 1.35rem;
   font-weight: 600;
-  margin-bottom: 1.75rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.compare-card-after .compare-heading {
+  border-bottom-color: var(--border-accent-soft);
+  color: var(--accent);
 }
 
 .compare-list {
@@ -3794,10 +3735,6 @@ h6,
    como fila y las franjas apiladas vuelven a ser horizontales.
    ============================================================ */
 @media (min-width: 768px) {
-  .section {
-    padding: 5.5rem 2rem;
-  }
-
   .header-container {
     padding: 1.1rem 1.5rem;
   }
@@ -3869,10 +3806,6 @@ h6,
    DESKTOP — min-width: 1024px
    ============================================================ */
 @media (min-width: 1024px) {
-  .section {
-    padding: 8rem 2rem;
-  }
-
   .service-rows {
     gap: 5rem;
   }

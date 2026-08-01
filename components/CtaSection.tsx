@@ -2,15 +2,15 @@
 
 import { motion } from "framer-motion";
 import Button from "./Button";
-import { fadeItem, staggerContainer, viewportOnce } from "./motion";
+import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
 
 export default function CtaSection() {
   return (
     <motion.section
-      initial={{ opacity: 0, scale: 0.95 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewportOnce}
       className="cta-section"
       id="contacto-final"
     >

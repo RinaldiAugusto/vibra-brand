@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { HOVER_SPRING, POP_SPRING } from "./motion";
+import { fadeUp, viewportOnce, HOVER_SPRING, POP_SPRING } from "./motion";
 
 // "Garantía": reducción de riesgo. Texto + badge/ícono.
 // La promesa es diagnostico y propuesta sin costo — no hay devolucion de
@@ -10,10 +10,10 @@ export default function GarantiaSection() {
   return (
     <section className="section" id="garantia">
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
         whileHover={{ y: -6, transition: HOVER_SPRING }}
         className="guarantee-card"
       >
@@ -22,7 +22,7 @@ export default function GarantiaSection() {
           aria-hidden
           initial={{ scale: 0, rotate: -20 }}
           whileInView={{ scale: 1, rotate: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={viewportOnce}
           transition={{ ...POP_SPRING, delay: 0.25 }}
         >
           {/* Ícono/badge placeholder — reemplazar por SVG o <Image> */}

@@ -123,15 +123,13 @@ export default function ServicesSection() {
         initial="hidden"
         whileInView="show"
         viewport={viewportOnce}
-        style={{ textAlign: "center", marginBottom: "4rem" }}
+        className="section-head"
       >
         <p className="eyebrow">
           <span className="marker-underline">Nuestros Servicios</span>
         </p>
         <h2 className="font-heading">Soluciones que liberan tu tiempo.</h2>
-        <p style={{ margin: "0 auto" }}>
-          Elegí el nivel de automatización que tu negocio necesita.
-        </p>
+        <p>Elegí el nivel de automatización que tu negocio necesita.</p>
       </motion.div>
 
       <div className="service-rows">

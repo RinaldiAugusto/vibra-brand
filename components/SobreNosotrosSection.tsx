@@ -1,22 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { fadeUp, viewportOnce } from "./motion";
 
 // "Sobre Nosotros": historia breve de la agencia.
 // Las tarjetas de equipo se sacaron a proposito (no hay fotos ni roles
-// definidos todavia); si vuelven, el CSS de .team-grid / .team-card sigue en
-// globals.css listo para usarse.
+// definidos todavia); el CSS de .team-grid / .team-card tambien se borro.
 export default function SobreNosotrosSection() {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewportOnce}
       className="section"
       id="sobre-nosotros"
     >
-      <div style={{ textAlign: "center", marginBottom: "4rem" }}>
+      {/* Sin bajada: el h2 solo cierra el bloque contra la historia de abajo. */}
+      <div className="section-head">
         <p className="eyebrow">
           <span className="marker-underline">Sobre Nosotros</span>
         </p>

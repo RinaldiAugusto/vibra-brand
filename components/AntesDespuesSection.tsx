@@ -6,6 +6,7 @@ import {
   fadeItem,
   staggerContainer,
   viewportOnce,
+  EASE_OUT,
   HOVER_SPRING,
 } from "./motion";
 
@@ -32,24 +33,22 @@ export default function AntesDespuesSection() {
         initial="hidden"
         whileInView="show"
         viewport={viewportOnce}
-        style={{ textAlign: "center", marginBottom: "4rem" }}
+        className="section-head"
       >
         <p className="eyebrow">
           <span className="marker-underline">El cambio</span>
         </p>
         <h2 className="font-heading">Cómo cambia tu semana</h2>
-        <p style={{ margin: "0 auto" }}>
-          El mismo negocio, con y sin un sistema que trabaje por vos.
-        </p>
+        <p>El mismo negocio, con y sin un sistema que trabaje por vos.</p>
       </motion.div>
 
       <div className="compare-grid">
         {/* Columna ANTES (dolor actual) */}
         <motion.div
-          initial={{ opacity: 0, x: -30 }}
+          initial={{ opacity: 0, x: -24 }}
           whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.6 }}
+          viewport={viewportOnce}
+          transition={{ duration: 0.6, ease: EASE_OUT }}
           whileHover={{ y: -6, transition: HOVER_SPRING }}
           className="compare-card compare-card-before"
         >
@@ -74,10 +73,10 @@ export default function AntesDespuesSection() {
 
         {/* Columna DESPUÉS (solución con IA) */}
         <motion.div
-          initial={{ opacity: 0, x: 30 }}
+          initial={{ opacity: 0, x: 24 }}
           whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.6, delay: 0.15 }}
+          viewport={viewportOnce}
+          transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.12 }}
           whileHover={{ y: -6, transition: HOVER_SPRING }}
           className="compare-card compare-card-after"
         >

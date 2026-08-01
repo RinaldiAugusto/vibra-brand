@@ -71,13 +71,13 @@ export default function ProcesoSection() {
         initial="hidden"
         whileInView="show"
         viewport={viewportOnce}
-        style={{ textAlign: "center", marginBottom: "4rem" }}
+        className="section-head"
       >
         <p className="eyebrow">
           <span className="marker-underline">Nuestro Proceso</span>
         </p>
         <h2 className="font-heading">De la primera charla a tu sistema andando</h2>
-        <p style={{ margin: "0 auto" }}>
+        <p>
           Cuatro etapas claras. En cada una sabés qué se está haciendo y cuándo
           lo vas a ver funcionando.
         </p>

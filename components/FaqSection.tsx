@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { fadeUp, fadeItem, staggerContainer, viewportOnce } from "./motion";
+import {
+  fadeUp,
+  fadeItem,
+  staggerContainer,
+  viewportOnce,
+  EASE_OUT,
+} from "./motion";
 import { useBorderGlow } from "./useBorderGlow";
 
 // FAQ en formato acordeón funcional (abrir/cerrar con estado).
@@ -75,7 +81,7 @@ function FaqItem({
         <motion.span
           className="faq-icon"
           animate={{ rotate: isOpen ? 45 : 0 }}
-          transition={{ duration: 0.25 }}
+          transition={{ duration: 0.3, ease: EASE_OUT }}
           aria-hidden
         >
           +
@@ -92,7 +98,7 @@ function FaqItem({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            transition={{ duration: 0.35, ease: EASE_OUT }}
           >
             <p className="faq-answer">{faq.answer}</p>
           </motion.div>
@@ -115,13 +121,13 @@ export default function FaqSection() {
         initial="hidden"
         whileInView="show"
         viewport={viewportOnce}
-        style={{ textAlign: "center", marginBottom: "4rem" }}
+        className="section-head"
       >
         <p className="eyebrow">
           <span className="marker-underline">Preguntas Frecuentes</span>
         </p>
         <h2 className="font-heading">Lo que nos preguntan antes de empezar</h2>
-        <p style={{ margin: "0 auto" }}>
+        <p>
           Si tenés una que no está acá, escribinos — te contestamos en el día.
         </p>
       </motion.div>
