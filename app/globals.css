@@ -73,6 +73,11 @@
   --hero-glow-w: max(100vw, calc(100vh * var(--hero-aspect)));
   --hero-glow-w: max(100vw, calc(100svh * var(--hero-aspect)));
   --hero-glow-h: calc(var(--hero-glow-w) / var(--hero-aspect));
+  /* Radio VERTICAL del hueco que el campo de estrellas le abre a la estrella
+     (ver starsMask en VibraHero). En landscape iguala al horizontal, o sea
+     circulo, que es como estaba. En vertical pasa a seguir el alto de la
+     franja: ver el override en el bloque de max-aspect-ratio. */
+  --hero-void-h: var(--hero-art-w);
 }
 
 * {
@@ -823,13 +828,44 @@ h6,
        cuadro las puntas de los brazos — que en desktop tampoco entran del
        todo — y el cuerpo de la estrella se ve entero, que es justo lo que
        cover destruia. */
-    --hero-art-w: calc(100vw * 1.8);
+    /* 2.4 = la franja cubre el 62% del alto de la pantalla, contra el 47% que
+       daba 1.8. Menos area vacia alrededor es menos marco que disimular. El
+       costo es que se recortan las puntas de los brazos por los costados (a
+       1.8 se veia el 56% del ancho del arte, a 2.4 el 42%), pero el cuerpo de
+       la estrella sigue entrando entero. */
+    --hero-art-w: calc(100vw * 2.4);
     /* El glow desborda la franja para banar la pantalla, pero NO llega a
        cover: cover en un telefono es un recorte al centro de la estrella
        difuminada — puro blanco — y lavaba el navy entero. A 2.4x la luz llena
        el centro y se apaga sola hacia arriba y abajo, como los rincones
        oscuros del encuadre en desktop. */
+    /* Se queda en 2.4 aunque el arte haya subido a ese mismo valor. Probe
+       llevarlo a 3.1 para que siguiera desbordando la franja y el resultado
+       fue el lavado que advierte el comentario de arriba: mas zoom sobre la
+       estrella ya difuminada es quedarse con su nucleo, puro blanco, y a p=0
+       el wordmark desaparecia encima. Ahora el trabajo de iluminar mas alla
+       de la franja lo hace .hero-light, que no tiene caja y no depende de
+       recortar un asset. */
     --hero-glow-w: calc(100vw * 2.4);
+    /* El hueco del campo de estrellas pasa a ELIPSE, con el radio vertical
+       atado al alto de la franja.
+
+       Con un circulo el radio lo mandaba el ancho del arte (702px en un
+       telefono de 390): horizontalmente entraba sobrado dentro de la franja,
+       pero verticalmente 225px superaba los 197px de media altura que tiene.
+       O sea que el hueco desbordaba la franja por arriba y por abajo y quedaba
+       un anillo de ~60px de negro vacio entre donde el arte se desvanece y
+       donde vuelven las estrellas — medido: la densidad de estrellas cae a
+       2/1000px entre y=160 y y=680, con el arte ocupando solo 225..619.
+       Ese anillo es lo que enmarca la animacion y la delata como un recorte
+       pegado encima del fondo.
+
+       Atando el radio vertical a --hero-art-h el hueco queda contenido dentro
+       de la franja, asi las estrellas ya estan de vuelta a densidad plena
+       donde el arte termina de desvanecerse y las dos capas se solapan en vez
+       de dejar un vacio. En landscape esto no cambia nada: ahi el arte llena
+       la pantalla y el hueco sigue siendo el circulo de siempre. */
+    --hero-void-h: var(--hero-art-h);
   }
 
   /* Difuminado de los bordes horizontales de la franja.

@@ -31,6 +31,10 @@ const AMBIENT_STRENGTH = 0.22;
 // dejaria la capa dibujando invisible o cortandose de golpe a la vista.
 const AMBIENT_IN: readonly [number, number] = [0.02, 0.12];
 const AMBIENT_OUT: readonly [number, number] = [0.6, 0.7];
+// Zoom de entrada del arte en vertical (ver introZoom). Va atado al 2.4 de
+// --hero-art-w en globals.css: si se toca uno hay que recalcular el otro para
+// que el producto siga dando la altura de arranque que se busca.
+const INTRO_ZOOM = 1.16;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const ramp = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
@@ -386,18 +390,26 @@ export default function VibraHero() {
   // franja (--hero-art-w) el morph empalma perfecto, pero la primera
   // impresion al abrir la pagina quedaba chica — una banda flotando en el
   // medio, nada que ver con el desktop donde la estrella llena la pantalla.
-  // Aca hero_1 arranca 1.55x mas grande (la estrella llena el alto del
-  // telefono) y se repliega a la escala de la franja durante [0, 0.1] con
-  // easeOut, justo ANTES de que el video A empiece a aparecer (0.10-0.15):
-  // cuando hay crossfade las escalas ya coinciden y el morph no salta.
-  // En landscape es 1 constante: desktop intacto.
+  // Asi que hero_1 arranca mas grande y se repliega a la escala de la franja
+  // durante [0, 0.1] con easeOut, justo ANTES de que el video A empiece a
+  // aparecer (0.10-0.15): cuando hay crossfade las escalas ya coinciden y el
+  // morph no salta. En landscape es 1 constante: desktop intacto.
+  //
+  // El valor bajo de 1.55 a 1.16 cuando --hero-art-w paso de 1.8 a 2.4. No es
+  // por gusto: el producto de los dos es lo que se ve al abrir la pagina, y
+  // 2.4 * 1.16 da la misma altura que daba 1.8 * 1.55, o sea que la primera
+  // impresion queda igual. Lo que cambia es cuanto se ENCOGE despues: antes el
+  // arte se replegaba de 612px a 395px (-35%) y ese repliegue era literalmente
+  // ver la animacion transformarse en una franja, con sus bandas apareciendo a
+  // los costados — por eso el marco se notaba justo al empezar a scrollear.
+  // Ahora va de 611 a 526 (-14%) y el replieguue casi no se percibe.
   const introZoom = useTransform(
     [scrollYProgress, portraitMV],
     ([p, ptr]: number[]) => {
       if (!ptr) return 1;
       const t = clamp01(p / 0.1);
       const e = 1 - Math.pow(1 - t, 3); // easeOutCubic
-      return 1.55 + (1 - 1.55) * e;
+      return INTRO_ZOOM + (1 - INTRO_ZOOM) * e;
     }
   );
 
@@ -554,8 +566,17 @@ export default function VibraHero() {
   // seguir al tamano del estallido, y en vertical el estallido ya no ocupa la
   // pantalla entera. Con vmin el hueco quedaba enorme al lado del arte y el
   // campo de estrellas desaparecia de medio hero.
+  //
+  // Es una ELIPSE, no un circulo: el radio vertical va por --hero-void-h, que
+  // en vertical sigue al alto de la franja (ver globals.css). Con un circulo
+  // el radio lo mandaba el ANCHO del arte y en el telefono desbordaba la
+  // franja por arriba y por abajo, dejando un anillo de negro sin estrellas
+  // entre el arte y el campo — el marco que se veia alrededor de la animacion.
+  //
+  // Centrado en 50%/50% y no en 53%/48%: el hueco tiene que coincidir con el
+  // encuadre del arte, que va centrado geometrico en los dos breakpoints.
   const starsVoid = useTransform(haloPulse, (b) => 0.29 + 0.06 * clamp01(b));
-  const starsMask = useMotionTemplate`radial-gradient(circle calc(var(--hero-art-w) * ${starsVoid}) at 53% 48%, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.55) 60%, #000 100%)`;
+  const starsMask = useMotionTemplate`radial-gradient(ellipse calc(var(--hero-art-w) * ${starsVoid}) calc(var(--hero-void-h) * ${starsVoid}) at 50% 50%, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.55) 60%, #000 100%)`;
 
   // ---- video A: estallido -> estrellas dispersas -> hero_2 ----
   const videoAOpacity = useTransform(
