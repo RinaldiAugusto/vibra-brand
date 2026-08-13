@@ -216,56 +216,54 @@ h6,
   position: relative;
 }
 
-/* Glow SIEMPRE horneado, en toda orientacion.
-   Esto antes valia solo en vertical, con el comentario de que blur(28px) y
-   blur(80px) en vivo sobre capas de pantalla completa saturaban el GPU "de un
-   telefono" y el video no llegaba a presentar frames. El diagnostico era
-   correcto pero se quedo corto en donde aplica: medido en desktop a 1440x900
-   con dpr 2, ocultar estas dos capas lleva la pagina de 20 fps a 59.9. O sea
-   que la misma saturacion pasaba en una maquina de escritorio — solo que ahi
-   no habia un video reproduciendose solo que lo hiciera evidente hasta que el
-   idle lo puso en pantalla.
-   Es esperable: un blur de 80px se evalua por pixel del viewport, y a dpr 2
-   son 2880x1800 pixeles por capa y por frame.
-   El JPG con el desenfoque ya horneado cuesta lo mismo que pintar una foto. */
+/* Las capas de glow horneadas viven en el DOM siempre, pero solo pintan en
+   vertical (el bloque de arriba las prende). blur(28px)/blur(80px) en vivo
+   sobre capas de pantalla completa es carisimo en el GPU de un telefono:
+   durante el morph el compositor quedaba saturado y el video no llegaba a
+   presentar frames — la animacion se veia como un slideshow congelado. El
+   mismo desenfoque horneado en un JPG cuesta lo mismo que pintar una foto. */
 .hero-glow-baked {
-  display: block;
+  display: none;
 }
 
-/* ---- Luz ambiente del morph (solo vertical) ----
-   El arte del hero es una franja 16:9 que en el telefono cubre el 47% del alto,
-   asi que arriba y abajo queda negro y la animacion se lee como un video metido
-   en un cuadro. Esta capa derrama la luz de la propia animacion sobre toda la
-   pantalla para que ese cuadro deje de tener bordes.
+/* ---- Luz ambiente del hero (solo vertical) ----
+   El problema que resuelve: en el telefono el arte del hero es una franja 16:9
+   y las capas de glow son cajas de 592px dentro de un viewport de 844. Medido
+   en el perfil de luminancia, la pantalla queda plana en 17.2 hasta y=126,
+   sube hasta 70 en el centro y vuelve a plano exacto en y=718. O sea que la
+   luz ARRANCA y TERMINA en un punto definido, y ese punto es el borde de la
+   caja. Un resplandor real no empieza en ningun lado: se apaga asintotico.
+   Ese arranque es lo que se lee como marco alrededor de la animacion, y no se
+   arregla suavizando el degrade — por suave que sea, sigue teniendo principio.
 
-   El truco: el canvas tiene un bitmap de 32x18 px y aca se lo estira al
-   viewport entero. El desenfoque no lo hace ningun filtro — sale del propio
-   escalado, cuando el navegador interpola 32 px a 390. Por eso cuesta lo mismo
-   que pintar un degrade, a diferencia de un blur() en vivo, que en este
-   proyecto ya se descarto por saturar el GPU del telefono durante el morph.
+   Esta capa no tiene caja: ocupa el viewport entero, asi que su unica forma es
+   la del gradiente. Los radios (78%/52%) hacen que llegue a alfa 0 apenas
+   afuera de la pantalla, de manera que en ningun punto visible hay un borde.
+   Rellena las bandas oscuras de arriba y abajo con la misma luz que emite la
+   estrella, asi la franja deja de leerse como un recorte pegado sobre el fondo
+   y pasa a ser el centro de una escena iluminada.
 
-   Y como la capa ocupa el viewport completo, no hay ningun borde de caja que
-   se pueda llegar a ver: es la diferencia con estirar las capas de glow, que
-   por grandes que sean siguen terminando en algun lado.
-
-   El frame va ESTIRADO, no recortado: un canvas escala su bitmap a la caja sin
-   respetar proporciones, y aca eso juega a favor — la luz se reparte hasta el
-   borde de arriba y el de abajo, que es exactamente donde estaba el corte. Con
-   este nivel de desenfoque la deformacion no se percibe, son manchas de color. */
-.hero-light {
+   El color sale de medir el aporte real de las capas de glow sobre el fondo
+   (+9,+16,+36 en la zona media): azul violaceo, no el cyan de marca. */
+.hero-ambient {
   display: none;
   position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
   z-index: 0;
   pointer-events: none;
   mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse 78% 52% at 50% 50%,
+    rgba(72, 112, 208, 0.3) 0%,
+    rgba(70, 106, 200, 0.17) 38%,
+    rgba(62, 94, 186, 0.06) 68%,
+    rgba(54, 82, 170, 0) 100%
+  );
 }
 
 @media (max-aspect-ratio: 1 / 1) {
-  /* en landscape el arte llena la pantalla: no hay bandas que rellenar */
-  .hero-light {
+  /* en landscape el arte llena la pantalla y no hay bandas que rellenar */
+  .hero-ambient {
     display: block;
   }
 }
@@ -324,31 +322,13 @@ h6,
   filter: drop-shadow(0 2px 40px rgba(var(--shadow-rgb), 0.55));
 }
 
-/* En vertical el wordmark cae sobre el nucleo mas brillante de la estrella,
-   no sobre el navy: cambian el tamano y la sombra. */
+/* En vertical el wordmark cae sobre el nucleo mas brillante de la estrella
+   y el drop-shadow de 40px se lee como una caja oscura sucia alrededor del
+   logo (el PNG es transparente: el "cuadro" era la sombra). En desktop el
+   fondo es mas oscuro y la sombra aporta profundidad; aca va limpio. */
 @media (max-aspect-ratio: 1 / 1) {
   .wordmark-img {
-    /* En vertical el encuadre esta 1.8x mas cerca, asi que el nucleo de la
-       estrella pasa a ocupar el 58% del ancho de pantalla contra el 26% de
-       desktop. Con la medida de desktop (40vw) el logo quedaba MAS ANGOSTO
-       que el nucleo —85% de su ancho— y se leia como un logo chico flotando
-       adentro del astro en vez de apoyado sobre el.
-       74vw restituye la proporcion de la composicion de desktop, que es la
-       referencia: alla el wordmark cruza el nucleo y lo pisa (medido: 129%
-       del ancho del nucleo; aca queda en 127%).
-       El tope en rem es para el tablet en vertical, donde 74vw se pasaria del
-       tamano que el logo tiene en la computadora. */
-    width: min(74vw, 26rem);
-    /* La sombra de desktop (blur 40px) aca se empastaba en una nube oscura con
-       forma de caja alrededor del logo —el PNG es transparente, el "cuadro"
-       que se veia era la sombra— y por eso estaba en none. Pero sin nada el
-       wordmark queda blanco sobre el blanco del nucleo y las letras del medio
-       (i-b-r) directamente desaparecen; con el logo ya en su tamano correcto
-       eso pasa a ser el problema visible.
-       La solucion no era sacar la sombra sino cerrarla: a 14px de blur el halo
-       sigue el contorno de cada letra en vez de acumularse en una mancha, asi
-       que despega el logo del nucleo sin ensuciar el fondo. */
-    filter: drop-shadow(0 0 14px rgba(8, 12, 32, 0.7));
+    filter: none;
   }
 }
 
@@ -380,19 +360,8 @@ h6,
      volverian a separarse cada vez que Safari mueve sus barras */
   top: 50%;
   top: 50svh;
-  /* left/right a ancho completo, NO left:50% + translateX. Un fixed con
-     left:50% y sin width hace shrink-to-fit contra lo unico que le queda de
-     viewport —la mitad derecha, 50vw— y la guarda global `img { max-width:
-     100% }` clampaba el wordmark a esa mitad: en un iPhone de 390px el logo
-     salia 195px en vez de los 224 que pedia su propio clamp(). En desktop no
-     se notaba porque 30rem < 50vw y el clamp nunca llega al techo. La caja
-     angosta ademas dejaba al tagline al borde de partirse en dos lineas.
-     Con la caja a ancho completo cada uno mide lo que dice su regla y el
-     centrado horizontal lo hace text-align. */
-  left: 0;
-  right: 0;
-  transform: translateY(-50%);
-  text-align: center;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1;
   /* el titulo no intercepta gestos: el hero se maneja con scroll */
   pointer-events: none;
@@ -844,7 +813,7 @@ h6,
        fue el lavado que advierte el comentario de arriba: mas zoom sobre la
        estrella ya difuminada es quedarse con su nucleo, puro blanco, y a p=0
        el wordmark desaparecia encima. Ahora el trabajo de iluminar mas alla
-       de la franja lo hace .hero-light, que no tiene caja y no depende de
+       de la franja lo hace .hero-ambient, que no tiene caja y no depende de
        recortar un asset. */
     --hero-glow-w: calc(100vw * 2.4);
     /* El hueco del campo de estrellas pasa a ELIPSE, con el radio vertical
@@ -963,6 +932,14 @@ h6,
     );
   }
 
+  /* En vertical las capas de glow con filter: blur() EN VIVO se apagan y
+     entran sus gemelas con el blur ya horneado en el asset (ver abajo). */
+  .hero-glow-live {
+    display: none;
+  }
+  .hero-glow-baked {
+    display: block;
+  }
 }
 
 /* ============================================================
