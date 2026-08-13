@@ -266,13 +266,18 @@ export default function VibraHero() {
 
   // titilacion de hero_1: parpadeo organico — tres ondas superpuestas de
   // frecuencias distintas para que nunca se sienta mecanico
+  //
+  // Amplitudes a la mitad de las originales (0.06/0.03/0.02): el brillo va de
+  // 0.44..0.56 en vez de 0.39..0.61. Las tres ondas siguen ahi, asi que el
+  // titileo no se vuelve mecanico — solo deja de ser un parpadeo con contraste
+  // visible sobre el nucleo, que era lo que endurecia la escena en reposo.
   const time = useTime();
   const twinkle = useTransform(time, (t) => {
     if (reduce) return 1; // brillo estable, sin titileo
     const s1 = Math.sin((t / 2600) * Math.PI * 2);
     const s2 = Math.sin((t / 1100) * Math.PI * 2 + 1.3);
     const s3 = Math.sin((t / 430) * Math.PI * 2 + 2.1);
-    return 0.5 + 0.06 * s1 + 0.03 * s2 + 0.02 * s3;
+    return 0.5 + 0.03 * s1 + 0.015 * s2 + 0.01 * s3;
   });
   const burstFilter = useMotionTemplate`brightness(${twinkle})`;
 
@@ -291,11 +296,20 @@ export default function VibraHero() {
   // rayos) aportan luz, asi que el halo emana de la propia iluminacion.
   // Ademas de la opacidad, la escala pulsa: el halo se expande fisicamente
   // cuando brilla, como si la luz empujara el espacio.
+  //
+  // La envolvente era 0.55 + 0.35*s1 + 0.2*s2, o sea un rango real de -0.00 a
+  // 1.10 sobre un valor que despues se clampea a [0,1]: el halo se apagaba del
+  // todo en los valles y saturaba en las crestas, y esos topes planos son lo
+  // que hacia que la respiracion se leyera como un pulso duro en vez de luz.
+  // Ahora 0.40 + 0.14*s1 + 0.08*s2 da 0.18..0.62, adentro del rango util en
+  // todo momento: sin clamp, sin apagones, y con menos de la mitad de recorrido.
+  // Para volver a la intensidad anterior hay que subir los tres numeros juntos;
+  // subir solo la media vuelve a saturar contra el clamp.
   const bloomPulse = useTransform(time, (t) => {
-    if (reduce) return 0.7; // halo estable, sin respiracion
+    if (reduce) return 0.4; // halo estable, sin respiracion (= media de arriba)
     const s1 = Math.sin((t / 2600) * Math.PI * 2);
     const s2 = Math.sin((t / 900) * Math.PI * 2 + 0.7);
-    return 0.55 + 0.35 * s1 + 0.2 * s2;
+    return 0.4 + 0.14 * s1 + 0.08 * s2;
   });
   // Cola de luz ambiente, solo en vertical. En desktop los videos del morph
   // cubren la pantalla y el glow puede morir con hero_1; en el celular el
@@ -326,11 +340,16 @@ export default function VibraHero() {
 
   // halo exterior: capa muy difuminada y lenta, desfasada del bloom, que
   // envuelve toda la escena en un resplandor espacial que va y viene
+  // Mismo criterio que el bloom: 0.45 + 0.3*s1 + 0.18*s2 daba -0.03..0.93 y el
+  // valle negativo apagaba el resplandor exterior por completo. 0.32 + 0.12*s1
+  // + 0.07*s2 queda en 0.13..0.51, siempre encendido y con un recorrido que no
+  // se nota como latido. El hueco del campo de estrellas (starsVoid) cuelga de
+  // esta misma senal, asi que ahora tambien respira menos.
   const haloPulse = useTransform(time, (t) => {
-    if (reduce) return 0.6; // resplandor exterior estable
+    if (reduce) return 0.32; // resplandor exterior estable (= media de arriba)
     const s1 = Math.sin((t / 3400) * Math.PI * 2 + 2.4);
     const s2 = Math.sin((t / 1500) * Math.PI * 2);
-    return 0.45 + 0.3 * s1 + 0.18 * s2;
+    return 0.32 + 0.12 * s1 + 0.07 * s2;
   });
   const haloOpacity = useTransform(
     [burstOpacity, glowTail, haloPulse],
