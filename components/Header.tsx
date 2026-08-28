@@ -136,7 +136,7 @@ export default function Header() {
           </ul>
           <Button
             className="nav-cta"
-            data-cal-link="augusto-rinaldi-r0s8ra/30min"
+            data-cal-link="vibra-z23fu3/30min"
             data-cal-config='{"layout":"month_view"}'
             onClick={() => close()}
           >

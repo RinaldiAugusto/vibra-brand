@@ -29,7 +29,7 @@ export default function CtaSection() {
         </motion.p>
         <motion.div variants={fadeItem} className="cta-actions">
           <Button
-            data-cal-link="augusto-rinaldi-r0s8ra/30min"
+            data-cal-link="vibra-z23fu3/30min"
             data-cal-config='{"layout":"month_view"}'
             style={{ padding: "1rem 2rem", fontSize: "1.125rem" }}
           >
